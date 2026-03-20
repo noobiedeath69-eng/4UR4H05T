@@ -5,6 +5,7 @@ export interface PendingPoll {
   location: string;
   startedByUserId: string;
   startedByUsername: string;
+  pollStartedAt: Date;
   timeoutHandle: ReturnType<typeof setTimeout>;
 }
 
