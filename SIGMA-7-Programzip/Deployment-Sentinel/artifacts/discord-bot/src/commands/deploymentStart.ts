@@ -26,13 +26,14 @@ const MIN_REACTIONS_FOR_DEPLOYMENT = 3;
 function buildPollMessage(location: string, userId: string): string {
   return [
     `**MTF Lambda-13 "The Onlookers"** is debriefing a deployment to **${location}**, led by <@${userId}>.`,
+    ``,
     `All specialized divisions are to initialize combat systems and establish active datalinks for immediate field operations.`,
-    `Allied Site/Faction Reconnaissance systems are now live.`,
     ``,
     `✅ **Deploying / En Route**`,
     `❌ **Stationed / Site-Bound**`,
     ``,
-    `\`-# Poll closes in 20 minutes.\``,
+    `\` Poll closes in 20 minutes.\``,
+    `-# <@1410299393130893312>`,
   ].join("\n");
 }
 
@@ -199,7 +200,7 @@ export async function handleDeploymentStart(
   );
 
   const pollMessage = await channel.send({
-    content: `<@1410299393130893312>\n${pollContent}`,
+    content: pollContent,
     components: [cancelRow],
   });
 
