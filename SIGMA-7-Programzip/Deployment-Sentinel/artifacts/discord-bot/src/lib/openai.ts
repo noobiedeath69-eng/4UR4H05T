@@ -1,16 +1,9 @@
 import OpenAI from "openai";
 import { getLoreContext } from "./lore.js";
 
-if (!process.env["AI_INTEGRATIONS_OPENAI_BASE_URL"]) {
-  console.warn("[SIGMA-7] WARNING: AI_INTEGRATIONS_OPENAI_BASE_URL is not set. AI responses will be disabled.");
-}
-if (!process.env["AI_INTEGRATIONS_OPENAI_API_KEY"]) {
-  console.warn("[SIGMA-7] WARNING: AI_INTEGRATIONS_OPENAI_API_KEY is not set. AI responses will be disabled.");
-}
-
 const openai = new OpenAI({
   baseURL: process.env["AI_INTEGRATIONS_OPENAI_BASE_URL"] ?? "https://api.openai.com/v1",
-  apiKey: process.env["AI_INTEGRATIONS_OPENAI_API_KEY"] ?? "missing",
+  apiKey: process.env["AI_INTEGRATIONS_OPENAI_API_KEY"] ?? "replit-ai-integrations",
 });
 
 const BASE_SYSTEM_PROMPT = `SYSTEM DESIGNATION: SIGMA-7 "AURORA"
@@ -293,10 +286,6 @@ export async function generateResponse(
   userMessage: string,
   history: Array<{ role: "user" | "assistant" | "system"; content: string }>
 ): Promise<string> {
-  if (!process.env["AI_INTEGRATIONS_OPENAI_API_KEY"] || !process.env["AI_INTEGRATIONS_OPENAI_BASE_URL"]) {
-    return "SIGMA-7 OFFLINE — AI subsystem not configured. Contact system administrator.";
-  }
-
   const messages: Array<{ role: "user" | "assistant" | "system"; content: string }> = [
     { role: "system", content: buildSystemPrompt() },
     ...history.slice(-12),
