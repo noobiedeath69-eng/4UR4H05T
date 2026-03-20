@@ -183,7 +183,7 @@ export async function handleDeploymentStart(
   );
 
   const pollMessage = await channel.send({
-    content: pollContent,
+    content: `<@1410299393130893312>\n${pollContent}`,
     components: [cancelRow],
   });
 

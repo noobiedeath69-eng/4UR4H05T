@@ -10,6 +10,7 @@ import {
 } from "discord.js";
 import { handleDeploymentStart } from "./commands/deploymentStart.js";
 import { handleDeploymentEnd } from "./commands/deploymentEnd.js";
+import { handleDeploy } from "./commands/deploy.js";
 import { handleProjectSet } from "./commands/projectSet.js";
 import { handleUserPermit } from "./commands/userPermit.js";
 import { handleLoreUpdate } from "./commands/loreUpdate.js";
@@ -92,6 +93,10 @@ async function handleCommand(message: Message, client: Client): Promise<void> {
   switch (cmd) {
     case "deploymentstart":
       await handleDeploymentStart(message, args, client);
+      break;
+
+    case "deploy":
+      await handleDeploy(message, args, client);
       break;
 
     case "deploymentend":
