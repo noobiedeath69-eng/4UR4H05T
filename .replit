@@ -19,3 +19,26 @@ build = ["npm", "run", "build"]
 
 [agent]
 integrations = ["javascript_openai_ai_integrations:2.0.0"]
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "SIGMA-7 Discord Bot"
+
+[[workflows.workflow]]
+name = "SIGMA-7 Discord Bot"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd SIGMA-7-Programzip/Deployment-Sentinel && pnpm --filter @workspace/discord-bot run dev"
+
+[workflows.workflow.metadata]
+outputType = "console"
