@@ -25,6 +25,13 @@ export const whitelistedUsersTable = pgTable("discord_whitelisted_users", {
   addedAt: timestamp("added_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
+export const whitelistedRolesTable = pgTable("discord_whitelisted_roles", {
+  id: serial("id").primaryKey(),
+  roleId: text("role_id").notNull().unique(),
+  roleName: text("role_name").notNull(),
+  addedAt: timestamp("added_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
 export const sentientChannelsTable = pgTable("discord_sentient_channels", {
   id: serial("id").primaryKey(),
   channelId: text("channel_id").notNull().unique(),

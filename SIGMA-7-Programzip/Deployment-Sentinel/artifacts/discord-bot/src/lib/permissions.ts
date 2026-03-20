@@ -1,5 +1,5 @@
 import { GuildMember, PermissionFlagsBits } from "discord.js";
-import { isUserWhitelisted } from "./db.js";
+import { isUserWhitelisted, isRoleWhitelisted } from "./db.js";
 
 export function isServerAdmin(member: GuildMember): boolean {
   return member.permissions.has(PermissionFlagsBits.Administrator);
@@ -7,7 +7,14 @@ export function isServerAdmin(member: GuildMember): boolean {
 
 export async function hasDeploymentPermission(member: GuildMember): Promise<boolean> {
   if (isServerAdmin(member)) return true;
-  return isUserWhitelisted(member.user.id);
+  if (await isUserWhitelisted(member.user.id)) return true;
+
+  const roleIds = [...member.roles.cache.keys()];
+  for (const roleId of roleIds) {
+    if (await isRoleWhitelisted(roleId)) return true;
+  }
+
+  return false;
 }
 
 export function isOwner(userId: string): boolean {

@@ -1,6 +1,6 @@
 import { Message } from "discord.js";
 import { isOwner } from "../lib/permissions.js";
-import { addWhitelistedUser } from "../lib/db.js";
+import { addWhitelistedUser, addWhitelistedRole } from "../lib/db.js";
 
 export async function handleUserPermit(message: Message): Promise<void> {
   if (!message.guild) return;
@@ -10,25 +10,39 @@ export async function handleUserPermit(message: Message): Promise<void> {
     return;
   }
 
-  const mentioned = message.mentions.users.first();
-  if (!mentioned) {
+  const mentionedRole = message.mentions.roles.first();
+  if (mentionedRole) {
+    await addWhitelistedRole(mentionedRole.id, mentionedRole.name);
     await message.reply(
-      "⚠️ Please mention a user. Usage: `!userpermit @User`"
+      [
+        `✅ **Role Access Granted.**`,
+        `All members with the <@&${mentionedRole.id}> role (**${mentionedRole.name}**) are now authorized to use deployment commands.`,
+        ``,
+        `\`-# Authorization logged. MTF Lambda-13 deployment roster updated.\``,
+      ].join("\n")
     );
     return;
   }
 
-  if (mentioned.bot) {
+  const mentionedUser = message.mentions.users.first();
+  if (!mentionedUser) {
+    await message.reply(
+      "⚠️ Please mention a user or role. Usage: `!userpermit @User` or `!userpermit @Role`"
+    );
+    return;
+  }
+
+  if (mentionedUser.bot) {
     await message.reply("⚠️ Bot accounts cannot be whitelisted.");
     return;
   }
 
-  await addWhitelistedUser(mentioned.id, mentioned.username);
+  await addWhitelistedUser(mentionedUser.id, mentionedUser.username);
 
   await message.reply(
     [
       `✅ **Access Granted.**`,
-      `<@${mentioned.id}> (**${mentioned.username}**) has been authorized to use deployment commands.`,
+      `<@${mentionedUser.id}> (**${mentionedUser.username}**) has been authorized to use deployment commands.`,
       ``,
       `\`-# Authorization logged. MTF Lambda-13 deployment roster updated.\``,
     ].join("\n")

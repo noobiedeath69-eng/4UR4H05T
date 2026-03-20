@@ -1,4 +1,4 @@
-import { db, deploymentsTable, whitelistedUsersTable, sentientChannelsTable } from "@workspace/db";
+import { db, deploymentsTable, whitelistedUsersTable, whitelistedRolesTable, sentientChannelsTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import type { NewDeployment } from "@workspace/db";
 
@@ -47,6 +47,22 @@ export async function addWhitelistedUser(userId: string, username: string) {
   await db
     .insert(whitelistedUsersTable)
     .values({ userId, username })
+    .onConflictDoNothing();
+}
+
+export async function isRoleWhitelisted(roleId: string): Promise<boolean> {
+  const [record] = await db
+    .select()
+    .from(whitelistedRolesTable)
+    .where(eq(whitelistedRolesTable.roleId, roleId))
+    .limit(1);
+  return !!record;
+}
+
+export async function addWhitelistedRole(roleId: string, roleName: string) {
+  await db
+    .insert(whitelistedRolesTable)
+    .values({ roleId, roleName })
     .onConflictDoNothing();
 }
 
