@@ -15,10 +15,9 @@ export async function handleUserPermit(message: Message): Promise<void> {
     await addWhitelistedRole(mentionedRole.id, mentionedRole.name);
     await message.reply(
       [
-        `✅ **Role Access Granted.**`,
-        `All members with the <@&${mentionedRole.id}> role (**${mentionedRole.name}**) are now authorized to use deployment commands.`,
+        `✅ **Deployment Command Access Granted to <@&${mentionedRole.id}>.**`,
         ``,
-        `\`-# Authorization logged. MTF Lambda-13 deployment roster updated.\``,
+        `\` Authorization logged. MTF Lambda-13 deployment roster updated.\``,
       ].join("\n")
     );
     return;
