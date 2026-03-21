@@ -22,6 +22,7 @@ export interface ActiveDeployment {
   startedByUserId: string;
   startedByUsername: string;
   intervalHandle: ReturnType<typeof setInterval>;
+  autoEndHandle?: ReturnType<typeof setTimeout>;
 }
 
 const pendingPolls = new Map<string, PendingPoll>();

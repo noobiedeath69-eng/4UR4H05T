@@ -21,9 +21,9 @@ externalPort = 8081
 PORT = "5000"
 
 [deployment]
-deploymentTarget = "autoscale"
-run = ["node", "./dist/index.cjs"]
-build = ["npm", "run", "build"]
+deploymentTarget = "vm"
+run = ["bash", "-c", "cd SIGMA-7-Programzip/Deployment-Sentinel && pnpm --filter @workspace/discord-bot run dev"]
+build = ["bash", "-c", "cd SIGMA-7-Programzip/Deployment-Sentinel && pnpm install"]
 
 [agent]
 integrations = ["javascript_openai_ai_integrations:2.0.0"]

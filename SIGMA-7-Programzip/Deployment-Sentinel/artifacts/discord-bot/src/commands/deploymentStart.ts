@@ -13,6 +13,7 @@ import {
   deletePendingPoll,
   setActiveDeployment,
 } from "../lib/state.js";
+import { executeDeploymentEnd } from "../lib/endDeployment.js";
 import { hasDeploymentPermission } from "../lib/permissions.js";
 import {
   createDeploymentRecord,
@@ -121,6 +122,19 @@ export async function resolvePoll(
   });
 
   await startLiveTimer(startMsg, guildId);
+
+  if (opType === "PATROL") {
+    const autoEndHandle = setTimeout(async () => {
+      console.log(`[SIGMA-7] Patrol auto-ending for guild ${guildId} at ${location}.`);
+      await executeDeploymentEnd(client, guildId, channelId);
+    }, 30 * 60 * 1000);
+
+    const current = getActiveDeployment(guildId);
+    if (current) {
+      current.autoEndHandle = autoEndHandle;
+      setActiveDeployment(guildId, current);
+    }
+  }
 }
 
 export async function schedulePollResolution(

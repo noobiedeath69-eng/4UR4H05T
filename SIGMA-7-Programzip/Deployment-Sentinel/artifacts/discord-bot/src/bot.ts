@@ -133,7 +133,12 @@ async function handleSentientChannel(message: Message): Promise<void> {
 
   const sentientChannel = await getSentientChannel(message.guild.id).catch(() => null);
   if (!sentientChannel) return;
-  if (sentientChannel.channelId !== message.channel.id) return;
+
+  const isDirectChannel = sentientChannel.channelId === message.channel.id;
+  const parentId = message.channel.isThread() ? (message.channel as { parentId?: string | null }).parentId : null;
+  const isForumPost = parentId === sentientChannel.channelId;
+
+  if (!isDirectChannel && !isForumPost) return;
 
   const channel = message.channel as TextChannel;
 
