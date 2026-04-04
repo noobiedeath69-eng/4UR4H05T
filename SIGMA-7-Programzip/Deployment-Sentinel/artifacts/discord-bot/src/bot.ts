@@ -19,6 +19,7 @@ import { handleProjectSet } from "./commands/projectSet.js";
 import { handleLoreUpdate } from "./commands/loreUpdate.js";
 import { handleLoreRemove } from "./commands/loreRemove.js";
 import { handleMemClear } from "./commands/memClear.js";
+import { handleHelp } from "./commands/help.js";
 import { registerSlashCommands } from "./lib/slashCommands.js";
 import { getSentientChannel, getPlaces } from "./lib/db.js";
 import { generateResponse } from "./lib/openai.js";
@@ -67,13 +68,6 @@ export function registerEvents(client: Client): void {
     handledMessageIds.add(message.id);
     setTimeout(() => handledMessageIds.delete(message.id), 30_000);
 
-    if (message.content.startsWith("!")) {
-      await handleOwnerCommand(message).catch((err) => {
-        console.error("[SIGMA-7] Owner command error:", err);
-      });
-      return;
-    }
-
     await handleSentientChannel(message).catch((err) => {
       console.error("[SIGMA-7] Sentient channel error:", err);
     });
@@ -103,29 +97,6 @@ export function registerEvents(client: Client): void {
   });
 }
 
-async function handleOwnerCommand(message: Message): Promise<void> {
-  const content = message.content.slice(1).trim();
-  const [command, ...args] = content.split(/\s+/);
-  const cmd = command?.toLowerCase();
-
-  switch (cmd) {
-    case "projectset":
-      await handleProjectSet(message);
-      break;
-    case "loreupdate":
-      await handleLoreUpdate(message, args);
-      break;
-    case "loreremove":
-      await handleLoreRemove(message, args);
-      break;
-    case "memclear":
-      await handleMemClear(message);
-      break;
-    default:
-      break;
-  }
-}
-
 async function handleSlashCommand(interaction: ChatInputCommandInteraction, client: Client): Promise<void> {
   switch (interaction.commandName) {
     case "deploymentstart":
@@ -146,6 +117,26 @@ async function handleSlashCommand(interaction: ChatInputCommandInteraction, clie
 
     case "registerplace":
       await handleRegisterPlace(interaction);
+      break;
+
+    case "projectset":
+      await handleProjectSet(interaction);
+      break;
+
+    case "loreupdate":
+      await handleLoreUpdate(interaction);
+      break;
+
+    case "loreremove":
+      await handleLoreRemove(interaction);
+      break;
+
+    case "memclear":
+      await handleMemClear(interaction);
+      break;
+
+    case "help":
+      await handleHelp(interaction);
       break;
 
     default:

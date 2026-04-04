@@ -221,7 +221,7 @@ export async function handleDeploymentStart(
 
   try {
     await pollMessage.startThread({
-      name: "Inquiries",
+      name: `INQUIRIES — ${location}`,
       autoArchiveDuration: 60,
     });
   } catch {

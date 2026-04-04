@@ -24,7 +24,7 @@ export const commandDefinitions = [
   },
   {
     name: "registerplace",
-    description: "Register a location for /deploymentstart (admins only)",
+    description: "Register a location for /deploymentstart autocomplete (admins only)",
     options: [
       {
         name: "name",
@@ -45,6 +45,65 @@ export const commandDefinitions = [
         required: true,
       },
     ],
+  },
+  {
+    name: "projectset",
+    description: "Assign SIGMA-7 to a channel or forum (owner only)",
+  },
+  {
+    name: "loreupdate",
+    description: "Manage SIGMA-7 intelligence documents (owner only)",
+    options: [
+      {
+        name: "list",
+        description: "List all loaded intelligence documents",
+        type: ApplicationCommandOptionType.Subcommand,
+      },
+      {
+        name: "add",
+        description: "Add a new intelligence document from Google Docs",
+        type: ApplicationCommandOptionType.Subcommand,
+        options: [
+          {
+            name: "url",
+            description: "Google Docs URL",
+            type: ApplicationCommandOptionType.String,
+            required: true,
+          },
+          {
+            name: "name",
+            description: "Name for the document (optional)",
+            type: ApplicationCommandOptionType.String,
+            required: false,
+          },
+        ],
+      },
+      {
+        name: "refresh",
+        description: "Re-synchronize all intelligence documents from source",
+        type: ApplicationCommandOptionType.Subcommand,
+      },
+    ],
+  },
+  {
+    name: "loreremove",
+    description: "Remove an intelligence document from SIGMA-7's memory (owner only)",
+    options: [
+      {
+        name: "number",
+        description: "Document number from /loreupdate list (omit to list documents)",
+        type: ApplicationCommandOptionType.Integer,
+        required: false,
+      },
+    ],
+  },
+  {
+    name: "memclear",
+    description: "Clear SIGMA-7's conversation memory in this channel (owner only)",
+  },
+  {
+    name: "help",
+    description: "Display all available SIGMA-7 commands and their purpose",
   },
 ];
 
