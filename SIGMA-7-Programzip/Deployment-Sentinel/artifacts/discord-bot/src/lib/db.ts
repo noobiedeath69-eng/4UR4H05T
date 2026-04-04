@@ -1,4 +1,4 @@
-import { db, deploymentsTable, whitelistedUsersTable, whitelistedRolesTable, sentientChannelsTable } from "@workspace/db";
+import { db, deploymentsTable, whitelistedUsersTable, whitelistedRolesTable, sentientChannelsTable, registeredPlacesTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import type { NewDeployment } from "@workspace/db";
 
@@ -64,6 +64,14 @@ export async function addWhitelistedRole(roleId: string, roleName: string) {
     .insert(whitelistedRolesTable)
     .values({ roleId, roleName })
     .onConflictDoNothing();
+}
+
+export async function addPlace(name: string) {
+  await db.insert(registeredPlacesTable).values({ name }).onConflictDoNothing();
+}
+
+export async function getPlaces() {
+  return db.select().from(registeredPlacesTable).orderBy(registeredPlacesTable.name);
 }
 
 export async function getSentientChannel(guildId: string) {

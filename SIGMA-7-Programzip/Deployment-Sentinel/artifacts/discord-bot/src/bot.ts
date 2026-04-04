@@ -5,18 +5,22 @@ import {
   Partials,
   Message,
   ButtonInteraction,
-  StringSelectMenuInteraction,
+  ChatInputCommandInteraction,
+  AutocompleteInteraction,
   TextChannel,
+  GuildMember,
 } from "discord.js";
 import { handleDeploymentStart } from "./commands/deploymentStart.js";
 import { handleDeploymentEnd } from "./commands/deploymentEnd.js";
 import { handleDeploy } from "./commands/deploy.js";
-import { handleProjectSet } from "./commands/projectSet.js";
 import { handleUserPermit } from "./commands/userPermit.js";
+import { handleRegisterPlace } from "./commands/registerPlace.js";
+import { handleProjectSet } from "./commands/projectSet.js";
 import { handleLoreUpdate } from "./commands/loreUpdate.js";
 import { handleLoreRemove } from "./commands/loreRemove.js";
 import { handleMemClear } from "./commands/memClear.js";
-import { getSentientChannel } from "./lib/db.js";
+import { registerSlashCommands } from "./lib/slashCommands.js";
+import { getSentientChannel, getPlaces } from "./lib/db.js";
 import { generateResponse } from "./lib/openai.js";
 import {
   addToConversationHistory,
@@ -25,8 +29,6 @@ import {
   deletePendingPoll,
 } from "./lib/state.js";
 import { hasDeploymentPermission } from "./lib/permissions.js";
-
-const PREFIX = "!";
 
 const handledMessageIds = new Set<string>();
 
@@ -44,9 +46,16 @@ export function createClient(): Client {
 }
 
 export function registerEvents(client: Client): void {
-  client.once(Events.ClientReady, (c) => {
+  client.once(Events.ClientReady, async (c) => {
     console.log(`[SIGMA-7] Online — logged in as ${c.user.tag}`);
     console.log(`[SIGMA-7] Serving ${c.guilds.cache.size} guild(s).`);
+
+    const token = process.env["DISCORD_BOT_TOKEN"];
+    if (token) {
+      await registerSlashCommands(c.user.id, token).catch((err) => {
+        console.error("[SIGMA-7] Failed to register slash commands:", err);
+      });
+    }
   });
 
   client.on(Events.MessageCreate, async (message: Message) => {
@@ -58,9 +67,9 @@ export function registerEvents(client: Client): void {
     handledMessageIds.add(message.id);
     setTimeout(() => handledMessageIds.delete(message.id), 30_000);
 
-    if (message.content.startsWith(PREFIX)) {
-      await handleCommand(message, client).catch((err) => {
-        console.error("[SIGMA-7] Command error:", err);
+    if (message.content.startsWith("!")) {
+      await handleOwnerCommand(message).catch((err) => {
+        console.error("[SIGMA-7] Owner command error:", err);
       });
       return;
     }
@@ -71,60 +80,87 @@ export function registerEvents(client: Client): void {
   });
 
   client.on(Events.InteractionCreate, async (interaction) => {
+    if (interaction.isAutocomplete()) {
+      await handleAutocomplete(interaction as AutocompleteInteraction).catch((err) => {
+        console.error("[SIGMA-7] Autocomplete error:", err);
+      });
+      return;
+    }
+
+    if (interaction.isChatInputCommand()) {
+      await handleSlashCommand(interaction as ChatInputCommandInteraction, client).catch((err) => {
+        console.error("[SIGMA-7] Slash command error:", err);
+      });
+      return;
+    }
+
     if (interaction.isButton()) {
       await handleButtonInteraction(interaction as ButtonInteraction).catch((err) => {
         console.error("[SIGMA-7] Button interaction error:", err);
       });
       return;
     }
-    if (interaction.isStringSelectMenu()) {
-      await handleSelectMenuInteraction(interaction as StringSelectMenuInteraction).catch((err) => {
-        console.error("[SIGMA-7] Select menu error:", err);
-      });
-    }
   });
 }
 
-async function handleCommand(message: Message, client: Client): Promise<void> {
-  const content = message.content.slice(PREFIX.length).trim();
+async function handleOwnerCommand(message: Message): Promise<void> {
+  const content = message.content.slice(1).trim();
   const [command, ...args] = content.split(/\s+/);
   const cmd = command?.toLowerCase();
 
   switch (cmd) {
-    case "deploymentstart":
-      await handleDeploymentStart(message, args, client);
-      break;
-
-    case "deploy":
-      await handleDeploy(message, args, client);
-      break;
-
-    case "deploymentend":
-      await handleDeploymentEnd(message);
-      break;
-
     case "projectset":
       await handleProjectSet(message);
       break;
-
-    case "userpermit":
-      await handleUserPermit(message);
-      break;
-
     case "loreupdate":
       await handleLoreUpdate(message, args);
       break;
-
     case "loreremove":
       await handleLoreRemove(message, args);
       break;
-
     case "memclear":
       await handleMemClear(message);
+      break;
+    default:
+      break;
+  }
+}
+
+async function handleSlashCommand(interaction: ChatInputCommandInteraction, client: Client): Promise<void> {
+  switch (interaction.commandName) {
+    case "deploymentstart":
+      await handleDeploymentStart(interaction, client);
+      break;
+
+    case "deploy":
+      await handleDeploy(interaction, client);
+      break;
+
+    case "deploymentend":
+      await handleDeploymentEnd(interaction);
+      break;
+
+    case "userpermit":
+      await handleUserPermit(interaction);
+      break;
+
+    case "registerplace":
+      await handleRegisterPlace(interaction);
       break;
 
     default:
       break;
+  }
+}
+
+async function handleAutocomplete(interaction: AutocompleteInteraction): Promise<void> {
+  if (interaction.commandName === "deploymentstart") {
+    const focused = interaction.options.getFocused().toLowerCase();
+    const places = await getPlaces().catch(() => []);
+    const filtered = places
+      .filter((p) => p.name.toLowerCase().includes(focused))
+      .slice(0, 25);
+    await interaction.respond(filtered.map((p) => ({ name: p.name, value: p.name })));
   }
 }
 
@@ -135,7 +171,9 @@ async function handleSentientChannel(message: Message): Promise<void> {
   if (!sentientChannel) return;
 
   const isDirectChannel = sentientChannel.channelId === message.channel.id;
-  const parentId = message.channel.isThread() ? (message.channel as { parentId?: string | null }).parentId : null;
+  const parentId = message.channel.isThread()
+    ? (message.channel as { parentId?: string | null }).parentId
+    : null;
   const isForumPost = parentId === sentientChannel.channelId;
 
   if (!isDirectChannel && !isForumPost) return;
@@ -145,11 +183,7 @@ async function handleSentientChannel(message: Message): Promise<void> {
   await channel.sendTyping().catch(() => {});
 
   const history = getConversationHistory(message.channel.id);
-  const response = await generateResponse(
-    message.channel.id,
-    message.content,
-    history
-  );
+  const response = await generateResponse(message.channel.id, message.content, history);
 
   console.log(`[SIGMA-7] Response generated (${response.length} chars): ${response.slice(0, 120)}`);
 
@@ -176,7 +210,7 @@ async function handleButtonInteraction(interaction: ButtonInteraction): Promise<
       return;
     }
 
-    const permitted = await hasDeploymentPermission(member);
+    const permitted = await hasDeploymentPermission(member as GuildMember);
     if (!permitted) {
       await interaction.reply({
         content: "🔒 **Access Denied.** You are not authorized to cancel this deployment.",
@@ -204,10 +238,4 @@ async function handleButtonInteraction(interaction: ButtonInteraction): Promise<
       `⛔ **Deployment to ${pending.location} has been cancelled by <@${interaction.user.id}>.**`
     );
   }
-}
-
-async function handleSelectMenuInteraction(
-  _interaction: StringSelectMenuInteraction
-): Promise<void> {
-  // Handled inline in projectSet.ts via collectors
 }

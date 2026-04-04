@@ -1,25 +1,26 @@
-import { Message, TextChannel } from "discord.js";
+import { ChatInputCommandInteraction, GuildMember, TextChannel } from "discord.js";
 import { getActiveDeployment, deletePendingPoll, getPendingPoll } from "../lib/state.js";
 import { hasDeploymentPermission } from "../lib/permissions.js";
 import { executeDeploymentEnd } from "../lib/endDeployment.js";
 
-export async function handleDeploymentEnd(message: Message): Promise<void> {
-  if (!message.guild || !message.member) return;
+export async function handleDeploymentEnd(interaction: ChatInputCommandInteraction): Promise<void> {
+  if (!interaction.guild || !interaction.member) return;
 
-  const permitted = await hasDeploymentPermission(message.member);
+  await interaction.deferReply({ ephemeral: true });
+
+  const member = interaction.member as GuildMember;
+  const permitted = await hasDeploymentPermission(member);
   if (!permitted) {
-    await message.reply(
-      "🔒 **Access Denied.** You do not have authorization to end a deployment."
-    );
+    await interaction.editReply("🔒 **Access Denied.** You do not have authorization to end a deployment.");
     return;
   }
 
-  const pendingPoll = getPendingPoll(message.guild.id);
+  const pendingPoll = getPendingPoll(interaction.guild.id);
   if (pendingPoll) {
     clearTimeout(pendingPoll.timeoutHandle);
-    deletePendingPoll(message.guild.id);
+    deletePendingPoll(interaction.guild.id);
 
-    const pollChannel = await message.client.channels.fetch(pendingPoll.channelId).catch(() => null);
+    const pollChannel = await interaction.client.channels.fetch(pendingPoll.channelId).catch(() => null);
     if (pollChannel && pollChannel.isTextBased()) {
       const textChannel = pollChannel as TextChannel;
       const pollMsg = await textChannel.messages.fetch(pendingPoll.pollMessageId).catch(() => null);
@@ -31,14 +32,16 @@ export async function handleDeploymentEnd(message: Message): Promise<void> {
       }
       await textChannel.send("⛔ **Deployment poll has been manually cancelled.**");
     }
+    await interaction.editReply("✅ **Poll cancelled.**");
     return;
   }
 
-  const deployment = getActiveDeployment(message.guild.id);
+  const deployment = getActiveDeployment(interaction.guild.id);
   if (!deployment) {
-    await message.reply("⚠️ There is no active deployment or poll to end.");
+    await interaction.editReply("⚠️ There is no active deployment or poll to end.");
     return;
   }
 
-  await executeDeploymentEnd(message.client, message.guild.id, message.channel.id);
+  await executeDeploymentEnd(interaction.client, interaction.guild.id, interaction.channelId);
+  await interaction.editReply("✅ **Deployment ended. Mission report posted.**");
 }

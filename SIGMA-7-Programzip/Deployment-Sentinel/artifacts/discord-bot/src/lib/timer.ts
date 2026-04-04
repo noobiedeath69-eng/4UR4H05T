@@ -25,7 +25,7 @@ export function buildStartMessage(
   const typeLabel = type.toUpperCase();
   return [
     `📡 **Lambda-13 is initiating a ${typeLabel}.**`,
-    `Per protocol, authorized Foundation allies are permitted to operate alongside our forces for this mission. Once you have joined as RRT, ping the designated officer in your lore to be morphed.`,
+    `Per protocol, authorized Foundation allies are permitted to operate alongside our forces for this mission. Once you have joined as RRT, ping the designated officer in your locker to be morphed.`,
     ``,
     `**📍 Location:** ${location}`,
     `**👤 Commanding Officer:** <@${startedByUserId}>`,

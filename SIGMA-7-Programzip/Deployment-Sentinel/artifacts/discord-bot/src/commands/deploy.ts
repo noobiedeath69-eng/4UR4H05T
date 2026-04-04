@@ -1,46 +1,38 @@
-import { Message, Client } from "discord.js";
-import {
-  getPendingPoll,
-  getActiveDeployment,
-  deletePendingPoll,
-} from "../lib/state.js";
+import { ChatInputCommandInteraction, GuildMember, Client } from "discord.js";
+import { getPendingPoll, getActiveDeployment, deletePendingPoll } from "../lib/state.js";
 import { hasDeploymentPermission } from "../lib/permissions.js";
 import { resolvePoll } from "./deploymentStart.js";
 
 export async function handleDeploy(
-  message: Message,
-  _args: string[],
+  interaction: ChatInputCommandInteraction,
   client: Client
 ): Promise<void> {
-  if (!message.guild || !message.member) return;
+  if (!interaction.guild || !interaction.member) return;
 
-  const permitted = await hasDeploymentPermission(message.member);
+  await interaction.deferReply({ ephemeral: true });
+
+  const member = interaction.member as GuildMember;
+  const permitted = await hasDeploymentPermission(member);
   if (!permitted) {
-    await message.reply(
-      "🔒 **Access Denied.** You do not have authorization to force a deployment."
-    );
+    await interaction.editReply("🔒 **Access Denied.** You do not have authorization to force a deployment.");
     return;
   }
 
-  if (getActiveDeployment(message.guild.id)) {
-    await message.reply(
-      "⚠️ A deployment is already active. Use `!deploymentend` to conclude it first."
-    );
+  if (getActiveDeployment(interaction.guild.id)) {
+    await interaction.editReply("⚠️ A deployment is already active. Use `/deploymentend` to conclude it first.");
     return;
   }
 
-  const pending = getPendingPoll(message.guild.id);
+  const pending = getPendingPoll(interaction.guild.id);
   if (!pending) {
-    await message.reply(
-      "⚠️ No active deployment poll to force-start. Use `!deploymentstart [Location]` to open a poll first."
-    );
+    await interaction.editReply("⚠️ No active deployment poll to force-start. Use `/deploymentstart` to open a poll first.");
     return;
   }
 
   clearTimeout(pending.timeoutHandle);
-  deletePendingPoll(message.guild.id);
+  deletePendingPoll(interaction.guild.id);
 
-  await message.reply("⚡ **Forcing deployment — skipping poll timer.**");
+  await interaction.editReply("⚡ **Forcing deployment — skipping poll timer. Reading current reactions...**");
 
   await resolvePoll(
     client,

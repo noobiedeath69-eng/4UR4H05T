@@ -1,5 +1,6 @@
 import {
-  Message,
+  ChatInputCommandInteraction,
+  GuildMember,
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
@@ -53,7 +54,9 @@ export async function resolvePoll(
 
   const textChannel = channel as TextChannel;
 
-  const pollMessage = await textChannel.messages.fetch(pollMessageId).catch(() => null);
+  const pollMessage = await textChannel.messages
+    .fetch({ message: pollMessageId, force: true })
+    .catch(() => null);
 
   let checkCount = 0;
   if (pollMessage) {
@@ -166,49 +169,44 @@ export async function schedulePollResolution(
 }
 
 export async function handleDeploymentStart(
-  message: Message,
-  args: string[],
+  interaction: ChatInputCommandInteraction,
   client: Client
 ): Promise<void> {
-  if (!message.guild || !message.member) return;
+  if (!interaction.guild || !interaction.member) return;
 
-  const permitted = await hasDeploymentPermission(message.member);
+  await interaction.deferReply({ ephemeral: true });
+
+  const member = interaction.member as GuildMember;
+  const permitted = await hasDeploymentPermission(member);
   if (!permitted) {
-    await message.reply(
+    await interaction.editReply(
       "🔒 **Access Denied.** You do not have authorization to initiate a deployment. Contact a server administrator or a whitelisted operator."
     );
     return;
   }
 
-  if (getPendingPoll(message.guild.id)) {
-    await message.reply(
+  if (getPendingPoll(interaction.guild.id)) {
+    await interaction.editReply(
       "⚠️ A deployment poll is already active. Wait for it to conclude or cancel it before starting a new one."
     );
     return;
   }
 
-  if (getActiveDeployment(message.guild.id)) {
-    await message.reply(
-      "⚠️ An active deployment is already in progress. Use `!deploymentend` to conclude it first."
+  if (getActiveDeployment(interaction.guild.id)) {
+    await interaction.editReply(
+      "⚠️ An active deployment is already in progress. Use `/deploymentend` to conclude it first."
     );
     return;
   }
 
-  const location = args.join(" ").trim();
-  if (!location) {
-    await message.reply(
-      "⚠️ Please specify a location. Usage: `!deploymentstart [Location]`\nExample: `!deploymentstart Site-Jacoby`"
-    );
-    return;
-  }
-
-  const channel = message.channel as TextChannel;
+  const location = interaction.options.getString("place", true);
+  const channel = interaction.channel as TextChannel;
   const pollStartedAt = new Date();
 
-  const pollContent = buildPollMessage(location, message.author.id);
+  const pollContent = buildPollMessage(location, interaction.user.id);
   const cancelRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
-      .setCustomId(`cancel_poll_${message.guild.id}`)
+      .setCustomId(`cancel_poll_${interaction.guild.id}`)
       .setLabel("Cancel Deployment")
       .setStyle(ButtonStyle.Danger)
   );
@@ -232,13 +230,15 @@ export async function handleDeploymentStart(
 
   await schedulePollResolution(
     client,
-    message.guild.id,
-    message.channel.id,
+    interaction.guild.id,
+    interaction.channelId,
     pollMessage.id,
     location,
-    message.author.id,
-    message.author.username,
+    interaction.user.id,
+    interaction.user.username,
     pollStartedAt,
     POLL_DURATION_MS
   );
+
+  await interaction.editReply("✅ **Deployment poll started.**");
 }
