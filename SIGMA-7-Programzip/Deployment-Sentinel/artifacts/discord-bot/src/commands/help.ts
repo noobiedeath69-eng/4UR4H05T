@@ -11,6 +11,7 @@ const HELP_TEXT = [
   "**— Administration —**",
   "`/registerplace <name>` — Register a location for `/deploymentstart` autocomplete. Requires admin or owner.",
   "`/userpermit <@user or @role>` — Grant a user or role access to deployment commands. Requires admin or owner.",
+  "`/setrecon <status> [activity]` — Set SIGMA-7's Discord status. Choices: Online, Idle, Do Not Disturb, Invisible. Requires admin or owner.",
   "",
   "**— SIGMA-7 Configuration (owner only) —**",
   "`/projectset` — Assign SIGMA-7 to a text or forum channel where it will monitor and respond to all messages.",

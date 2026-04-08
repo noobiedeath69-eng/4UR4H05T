@@ -102,6 +102,30 @@ export const commandDefinitions = [
     description: "Clear SIGMA-7's conversation memory in this channel (owner only)",
   },
   {
+    name: "setrecon",
+    description: "Set SIGMA-7's Discord status (admins only)",
+    options: [
+      {
+        name: "status",
+        description: "The presence status to set",
+        type: ApplicationCommandOptionType.String,
+        required: true,
+        choices: [
+          { name: "Online", value: "online" },
+          { name: "Idle", value: "idle" },
+          { name: "Do Not Disturb", value: "dnd" },
+          { name: "Invisible", value: "invisible" },
+        ],
+      },
+      {
+        name: "activity",
+        description: "Optional custom activity text (e.g. 'Monitoring Site-45')",
+        type: ApplicationCommandOptionType.String,
+        required: false,
+      },
+    ],
+  },
+  {
     name: "help",
     description: "Display all available SIGMA-7 commands and their purpose",
   },

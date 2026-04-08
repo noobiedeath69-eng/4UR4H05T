@@ -20,6 +20,7 @@ import { handleLoreUpdate } from "./commands/loreUpdate.js";
 import { handleLoreRemove } from "./commands/loreRemove.js";
 import { handleMemClear } from "./commands/memClear.js";
 import { handleHelp } from "./commands/help.js";
+import { handleSetRecon } from "./commands/setRecon.js";
 import { registerSlashCommands } from "./lib/slashCommands.js";
 import { getSentientChannel, getPlaces } from "./lib/db.js";
 import { generateResponse, checkShouldRespond } from "./lib/openai.js";
@@ -133,6 +134,10 @@ async function handleSlashCommand(interaction: ChatInputCommandInteraction, clie
 
     case "memclear":
       await handleMemClear(interaction);
+      break;
+
+    case "setrecon":
+      await handleSetRecon(interaction);
       break;
 
     case "help":
