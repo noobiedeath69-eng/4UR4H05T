@@ -314,18 +314,18 @@ export async function checkShouldRespond(
   // Always respond if directly addressed
   if (botMentioned) return true;
 
-  // If any other user is mentioned and the bot is not — they are talking to each other, not us
-  if (mentionsOtherUsers) return false;
-
-  // Someone shared something with no other mentions — acknowledge it
-  if (hasAttachments) return true;
-
   const trimmed = resolvedContent.trim();
 
-  // Nothing to work with
-  if (!trimmed) return false;
+  // If the message OPENS by addressing another user, they're talking to that person — stay silent.
+  // e.g. "@Centurion hey check this out" → skip
+  // But "Hey is @Centurion cool?" starts with "Hey", not a mention — let it through to AI check.
+  if (mentionsOtherUsers && /^@\S/.test(trimmed)) return false;
 
-  // For plain messages with no mentions, ask the AI to decide
+  // Nothing to work with
+  if (!trimmed && !hasAttachments) return false;
+
+  // For everything else (plain messages, messages about other users, attachments)
+  // let the AI decide based on whether there's intent to get a response
   const result = await openai.chat.completions.create({
     model: "gpt-4o",
     max_completion_tokens: 3,
@@ -333,15 +333,15 @@ export async function checkShouldRespond(
       {
         role: "system",
         content:
-          "You decide whether an AI monitor named SIGMA-7 should respond to a Discord message. " +
-          "The message has no @mentions. " +
-          "Reply YES if the message asks a question, makes an open statement, or seems to want a response. " +
-          "Reply NO if the message is clearly just chatter or noise with no intent to get a reply. " +
+          "You decide whether an AI assistant named SIGMA-7 should respond to a Discord message. " +
+          "Reply YES if the message is a question, an open statement, or clearly expects a response — even if it mentions another person by name. " +
+          "Reply NO only if the message is clearly a direct side-conversation between two people with no intent to get a bot response " +
+          "(e.g. someone telling another person something, reacting to someone else, or chatting with a third party). " +
           "Reply with only YES or NO.",
       },
       {
         role: "user",
-        content: trimmed,
+        content: trimmed || "[attachment only]",
       },
     ],
   });
