@@ -269,7 +269,7 @@ async function handleSentientChannel(message: Message): Promise<void> {
     .join("\n");
 
   const history = getConversationHistory(message.channel.id);
-  const response = await generateResponse(message.channel.id, fullContent, history, imageUrls);
+  const response = await generateResponse(message.channel.id, fullContent, history, imageUrls, isCreator);
 
   console.log(`[SIGMA-7] Response generated (${response.length} chars): ${response.slice(0, 120)}`);
 
