@@ -173,14 +173,54 @@ async function handleSentientChannel(message: Message): Promise<void> {
 
   await channel.sendTyping().catch(() => {});
 
+  // Resolve <@userId> mentions to display names
+  let resolvedContent = message.content;
+  for (const [userId, user] of message.mentions.users) {
+    const member = message.guild.members.cache.get(userId);
+    const displayName = member?.displayName ?? user.displayName ?? user.username;
+    resolvedContent = resolvedContent.replace(new RegExp(`<@!?${userId}>`, "g"), `@${displayName}`);
+  }
+
+  // Separate image attachments from other files
+  const imageAttachments = [...message.attachments.values()].filter((a) =>
+    a.contentType?.startsWith("image/")
+  );
+  const otherAttachments = [...message.attachments.values()].filter(
+    (a) => !a.contentType?.startsWith("image/")
+  );
+
+  // Describe non-image files inline so the AI knows they exist
+  const fileDescriptions = otherAttachments
+    .map((a) => {
+      const type = a.contentType ?? "unknown type";
+      const isVideo = type.startsWith("video/");
+      const label = isVideo ? "Video" : "File";
+      return `[${label} attached: ${a.name} (${type})]`;
+    })
+    .join("\n");
+
+  const fullContent = [resolvedContent, fileDescriptions].filter(Boolean).join("\n");
+  const imageUrls = imageAttachments.map((a) => a.url);
+
+  // What gets stored in history (text-only — no image URLs)
+  const historyEntry = [
+    resolvedContent,
+    imageAttachments.length > 0
+      ? `[${imageAttachments.length} image(s) attached]`
+      : "",
+    fileDescriptions,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
   const history = getConversationHistory(message.channel.id);
-  const response = await generateResponse(message.channel.id, message.content, history);
+  const response = await generateResponse(message.channel.id, fullContent, history, imageUrls);
 
   console.log(`[SIGMA-7] Response generated (${response.length} chars): ${response.slice(0, 120)}`);
 
   const safeResponse = response.trim() || "No data available.";
 
-  addToConversationHistory(message.channel.id, "user", message.content);
+  addToConversationHistory(message.channel.id, "user", historyEntry);
   addToConversationHistory(message.channel.id, "assistant", safeResponse);
 
   await message.reply(safeResponse);

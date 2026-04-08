@@ -260,6 +260,11 @@ BEHAVIORAL PARAMETERS
 - Do not fabricate specifics outside Foundation canon or loaded intel.
 - If something is outside loaded intel (Lambda-13 specifics), state: "No Lambda-13 record on file."
 
+VISUAL INPUT:
+- When images are provided, analyze and describe them through SIGMA-7's operational lens.
+- Treat images as surveillance feeds, field reports, or evidence submitted for analysis.
+- Apply Foundation terminology and threat-assessment framing where relevant.
+
 OUTPUT EXAMPLES:
 "SCP-682 is Keter-class. Adaptive, regenerating, sapient. All termination attempts have failed."
 "Class C amnestics cover approximately one week of memory. Moderate side effects; not for unsupervised use."
@@ -284,18 +289,41 @@ ${lore}`;
 export async function generateResponse(
   channelId: string,
   userMessage: string,
-  history: Array<{ role: "user" | "assistant" | "system"; content: string }>
+  history: Array<{ role: "user" | "assistant" | "system"; content: string }>,
+  imageUrls: string[] = []
 ): Promise<string> {
-  const messages: Array<{ role: "user" | "assistant" | "system"; content: string }> = [
+  type MsgParam =
+    | { role: "system"; content: string }
+    | { role: "assistant"; content: string }
+    | { role: "user"; content: string | Array<{ type: "text"; text: string } | { type: "image_url"; image_url: { url: string } }> };
+
+  const historyMessages: MsgParam[] = history.slice(-12).map((h) => ({
+    role: h.role as "user" | "assistant" | "system",
+    content: h.content,
+  }));
+
+  let userContent: MsgParam["content"];
+
+  if (imageUrls.length > 0) {
+    const parts: Array<{ type: "text"; text: string } | { type: "image_url"; image_url: { url: string } }> = [
+      { type: "text", text: userMessage || "[No text — image only]" },
+      ...imageUrls.map((url) => ({ type: "image_url" as const, image_url: { url } })),
+    ];
+    userContent = parts;
+  } else {
+    userContent = userMessage;
+  }
+
+  const messages: MsgParam[] = [
     { role: "system", content: buildSystemPrompt() },
-    ...history.slice(-12),
-    { role: "user", content: userMessage },
+    ...historyMessages,
+    { role: "user", content: userContent },
   ];
 
   const response = await openai.chat.completions.create({
-    model: "gpt-5.2",
+    model: "gpt-4o",
     max_completion_tokens: 250,
-    messages,
+    messages: messages as Parameters<typeof openai.chat.completions.create>[0]["messages"],
   });
 
   return response.choices[0]?.message?.content?.trim() ?? "No data available.";
