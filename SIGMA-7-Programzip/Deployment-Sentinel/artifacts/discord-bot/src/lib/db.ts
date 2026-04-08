@@ -1,5 +1,5 @@
-import { db, deploymentsTable, whitelistedUsersTable, whitelistedRolesTable, sentientChannelsTable, registeredPlacesTable } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { db, deploymentsTable, whitelistedUsersTable, whitelistedRolesTable, sentientChannelsTable, registeredPlacesTable, conversationHistoryTable } from "@workspace/db";
+import { eq, and, asc, desc, inArray } from "drizzle-orm";
 import type { NewDeployment } from "@workspace/db";
 
 export async function createDeploymentRecord(data: NewDeployment) {

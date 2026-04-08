@@ -1,4 +1,4 @@
-import { pgTable, serial, text, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, timestamp, boolean, integer } from "drizzle-orm/pg-core";
 
 export const deploymentsTable = pgTable("discord_deployments", {
   id: serial("id").primaryKey(),
@@ -52,6 +52,15 @@ export const loreDocumentsTable = pgTable("discord_lore_documents", {
   url: text("url").notNull().unique(),
   content: text("content").notNull(),
   lastFetched: timestamp("last_fetched", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const conversationHistoryTable = pgTable("discord_conversation_history", {
+  id: serial("id").primaryKey(),
+  channelId: text("channel_id").notNull(),
+  role: text("role").notNull(),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  seqNum: integer("seq_num").notNull().default(0),
 });
 
 export type Deployment = typeof deploymentsTable.$inferSelect;
