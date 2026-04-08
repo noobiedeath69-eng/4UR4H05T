@@ -311,10 +311,14 @@ export async function checkShouldRespond(
   mentionsOtherUsers: boolean,
   hasAttachments: boolean
 ): Promise<boolean> {
-  // Always respond if directly addressed
+  // Always respond if directly addressed via @mention
   if (botMentioned) return true;
 
   const trimmed = resolvedContent.trim();
+  const lower = trimmed.toLowerCase();
+
+  // Treat bot name in plain text as a direct address — e.g. "aint that right aurora"
+  if (/\baurora\b/.test(lower) || /\bsigma[-\s]?7\b/.test(lower)) return true;
 
   // If the message OPENS by addressing another user, they're talking to that person — stay silent.
   // e.g. "@Centurion hey check this out" → skip
