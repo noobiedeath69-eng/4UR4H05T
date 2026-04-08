@@ -314,19 +314,18 @@ export async function checkShouldRespond(
   // Always respond if directly addressed
   if (botMentioned) return true;
 
-  // Someone shared something without talking to another person — acknowledge it
-  if (hasAttachments && !mentionsOtherUsers) return true;
+  // If any other user is mentioned and the bot is not — they are talking to each other, not us
+  if (mentionsOtherUsers) return false;
 
-  // Skip if the message is clearly opening a conversation with someone else
-  // e.g. "@John hey did you see this?" — starts with an @-mention of another person
+  // Someone shared something with no other mentions — acknowledge it
+  if (hasAttachments) return true;
+
   const trimmed = resolvedContent.trim();
-  const startsAddressingOther = mentionsOtherUsers && /^@\S/.test(trimmed);
-  if (startsAddressingOther) return false;
 
-  // Nothing to work with at all
+  // Nothing to work with
   if (!trimmed) return false;
 
-  // For ambiguous messages, ask the AI to decide with a minimal call
+  // For plain messages with no mentions, ask the AI to decide
   const result = await openai.chat.completions.create({
     model: "gpt-4o",
     max_completion_tokens: 3,
@@ -335,14 +334,14 @@ export async function checkShouldRespond(
         role: "system",
         content:
           "You decide whether an AI monitor named SIGMA-7 should respond to a Discord message. " +
-          "Reply YES if the message is directed at SIGMA-7, asks any question, makes an open statement, " +
-          "or is ambiguous enough to warrant acknowledgment. " +
-          "Reply NO only if the person is clearly in a side conversation with another specific user and SIGMA-7 is not involved. " +
+          "The message has no @mentions. " +
+          "Reply YES if the message asks a question, makes an open statement, or seems to want a response. " +
+          "Reply NO if the message is clearly just chatter or noise with no intent to get a reply. " +
           "Reply with only YES or NO.",
       },
       {
         role: "user",
-        content: `Message (mentions other users: ${mentionsOtherUsers}): ${trimmed}`,
+        content: trimmed,
       },
     ],
   });
