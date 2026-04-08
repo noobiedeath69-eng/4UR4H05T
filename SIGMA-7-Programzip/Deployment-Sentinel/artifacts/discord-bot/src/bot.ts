@@ -22,7 +22,7 @@ import { handleMemClear } from "./commands/memClear.js";
 import { handleHelp } from "./commands/help.js";
 import { registerSlashCommands } from "./lib/slashCommands.js";
 import { getSentientChannel, getPlaces } from "./lib/db.js";
-import { generateResponse } from "./lib/openai.js";
+import { generateResponse, checkShouldRespond } from "./lib/openai.js";
 import {
   addToConversationHistory,
   getConversationHistory,
@@ -171,8 +171,6 @@ async function handleSentientChannel(message: Message): Promise<void> {
 
   const channel = message.channel as TextChannel;
 
-  await channel.sendTyping().catch(() => {});
-
   // Resolve sender identity
   const senderMember =
     message.guild.members.cache.get(message.author.id) ??
@@ -193,6 +191,10 @@ async function handleSentientChannel(message: Message): Promise<void> {
 
   // Resolve <@userId> mentions to display names
   let resolvedContent = message.content;
+  const botId = message.client.user?.id ?? "";
+  const botMentioned = message.mentions.users.has(botId);
+  const mentionsOtherUsers = message.mentions.users.filter((u) => u.id !== botId).size > 0;
+
   for (const [userId, user] of message.mentions.users) {
     const member = message.guild.members.cache.get(userId);
     const displayName = member?.displayName ?? user.displayName ?? user.username;
@@ -206,6 +208,23 @@ async function handleSentientChannel(message: Message): Promise<void> {
   const otherAttachments = [...message.attachments.values()].filter(
     (a) => !a.contentType?.startsWith("image/")
   );
+  const hasAttachments = message.attachments.size > 0;
+
+  // Relevance gate — decide whether to respond before showing typing indicator
+  const shouldRespond = await checkShouldRespond(
+    resolvedContent,
+    botMentioned,
+    mentionsOtherUsers,
+    hasAttachments
+  ).catch(() => true); // Default to responding on error
+
+  if (!shouldRespond) {
+    console.log(`[SIGMA-7] Skipping message from ${senderDisplayName} — not relevant.`);
+    return;
+  }
+
+  // Only show typing indicator once we've decided to respond
+  await channel.sendTyping().catch(() => {});
 
   // Describe non-image files inline so the AI knows they exist
   const fileDescriptions = otherAttachments

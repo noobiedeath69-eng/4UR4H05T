@@ -305,6 +305,52 @@ The following documents contain unit-specific intelligence. Reference this for L
 ${lore}`;
 }
 
+export async function checkShouldRespond(
+  resolvedContent: string,
+  botMentioned: boolean,
+  mentionsOtherUsers: boolean,
+  hasAttachments: boolean
+): Promise<boolean> {
+  // Always respond if directly addressed
+  if (botMentioned) return true;
+
+  // Someone shared something without talking to another person — acknowledge it
+  if (hasAttachments && !mentionsOtherUsers) return true;
+
+  // Skip if the message is clearly opening a conversation with someone else
+  // e.g. "@John hey did you see this?" — starts with an @-mention of another person
+  const trimmed = resolvedContent.trim();
+  const startsAddressingOther = mentionsOtherUsers && /^@\S/.test(trimmed);
+  if (startsAddressingOther) return false;
+
+  // Nothing to work with at all
+  if (!trimmed) return false;
+
+  // For ambiguous messages, ask the AI to decide with a minimal call
+  const result = await openai.chat.completions.create({
+    model: "gpt-4o",
+    max_completion_tokens: 3,
+    messages: [
+      {
+        role: "system",
+        content:
+          "You decide whether an AI monitor named SIGMA-7 should respond to a Discord message. " +
+          "Reply YES if the message is directed at SIGMA-7, asks any question, makes an open statement, " +
+          "or is ambiguous enough to warrant acknowledgment. " +
+          "Reply NO only if the person is clearly in a side conversation with another specific user and SIGMA-7 is not involved. " +
+          "Reply with only YES or NO.",
+      },
+      {
+        role: "user",
+        content: `Message (mentions other users: ${mentionsOtherUsers}): ${trimmed}`,
+      },
+    ],
+  });
+
+  const answer = result.choices[0]?.message?.content?.trim().toUpperCase() ?? "YES";
+  return !answer.startsWith("NO");
+}
+
 export async function generateResponse(
   channelId: string,
   userMessage: string,
