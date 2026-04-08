@@ -173,6 +173,24 @@ async function handleSentientChannel(message: Message): Promise<void> {
 
   await channel.sendTyping().catch(() => {});
 
+  // Resolve sender identity
+  const senderMember =
+    message.guild.members.cache.get(message.author.id) ??
+    (await message.guild.members.fetch(message.author.id).catch(() => null));
+  const senderDisplayName =
+    senderMember?.displayName ?? message.author.displayName ?? message.author.username;
+  const senderUsername = message.author.username;
+  const isCreator = message.author.id === process.env["OWNER_DISCORD_ID"];
+
+  const senderHeader = [
+    `[PERSONNEL: ${senderDisplayName}`,
+    `| username: ${senderUsername}`,
+    isCreator ? "| CLEARANCE: SIGMA-PRIME / CREATOR" : "",
+    "]",
+  ]
+    .filter((s) => s !== "")
+    .join(" ");
+
   // Resolve <@userId> mentions to display names
   let resolvedContent = message.content;
   for (const [userId, user] of message.mentions.users) {
@@ -199,15 +217,16 @@ async function handleSentientChannel(message: Message): Promise<void> {
     })
     .join("\n");
 
-  const fullContent = [resolvedContent, fileDescriptions].filter(Boolean).join("\n");
+  const fullContent = [senderHeader, resolvedContent, fileDescriptions]
+    .filter(Boolean)
+    .join("\n");
   const imageUrls = imageAttachments.map((a) => a.url);
 
   // What gets stored in history (text-only — no image URLs)
   const historyEntry = [
+    senderHeader,
     resolvedContent,
-    imageAttachments.length > 0
-      ? `[${imageAttachments.length} image(s) attached]`
-      : "",
+    imageAttachments.length > 0 ? `[${imageAttachments.length} image(s) attached]` : "",
     fileDescriptions,
   ]
     .filter(Boolean)
