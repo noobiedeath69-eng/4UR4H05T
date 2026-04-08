@@ -185,16 +185,24 @@ async function handleSentientChannel(message: Message): Promise<void> {
   const senderUsername = message.author.username;
   const isCreator = message.author.id === process.env["OWNER_DISCORD_ID"];
 
+  // Collect sender's roles (excluding @everyone, sorted highest first)
+  const senderRoles = senderMember?.roles.cache
+    .filter((r) => r.name !== "@everyone")
+    .sort((a, b) => b.position - a.position)
+    .map((r) => r.name)
+    .join(", ");
+
   const senderHeader = [
     `[PERSONNEL: ${senderDisplayName}`,
     `| username: ${senderUsername}`,
+    senderRoles ? `| roles: ${senderRoles}` : "",
     isCreator ? "| CLEARANCE: SIGMA-PRIME / CREATOR" : "",
     "]",
   ]
     .filter((s) => s !== "")
     .join(" ");
 
-  // Resolve <@userId> mentions to display names
+  // Resolve <@userId> user mentions and <@&roleId> role mentions to readable names
   let resolvedContent = message.content;
   const botId = message.client.user?.id ?? "";
   const botMentioned = message.mentions.users.has(botId);
@@ -204,6 +212,10 @@ async function handleSentientChannel(message: Message): Promise<void> {
     const member = message.guild.members.cache.get(userId);
     const displayName = member?.displayName ?? user.displayName ?? user.username;
     resolvedContent = resolvedContent.replace(new RegExp(`<@!?${userId}>`, "g"), `@${displayName}`);
+  }
+
+  for (const [roleId, role] of message.mentions.roles) {
+    resolvedContent = resolvedContent.replace(new RegExp(`<@&${roleId}>`, "g"), `@${role.name}`);
   }
 
   // Separate image attachments from other files
