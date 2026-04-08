@@ -6,6 +6,7 @@ export function isServerAdmin(member: GuildMember): boolean {
 }
 
 export async function hasDeploymentPermission(member: GuildMember): Promise<boolean> {
+  if (isOwner(member.user.id)) return true;
   if (isServerAdmin(member)) return true;
   if (await isUserWhitelisted(member.user.id)) return true;
 
