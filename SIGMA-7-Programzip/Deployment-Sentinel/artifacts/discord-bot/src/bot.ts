@@ -23,7 +23,7 @@ import { handleHelp } from "./commands/help.js";
 import { handleSetRecon } from "./commands/setRecon.js";
 import { registerSlashCommands } from "./lib/slashCommands.js";
 import { getSentientChannel, getPlaces } from "./lib/db.js";
-import { generateResponse, checkShouldRespond } from "./lib/openai.js";
+import { generateResponse } from "./lib/openai.js";
 import {
   addToConversationHistory,
   getConversationHistory,
@@ -227,16 +227,21 @@ async function handleSentientChannel(message: Message): Promise<void> {
   );
   const hasAttachments = message.attachments.size > 0;
 
-  // Relevance gate — decide whether to respond before showing typing indicator
-  const shouldRespond = await checkShouldRespond(
-    resolvedContent,
-    botMentioned,
-    mentionsOtherUsers,
-    hasAttachments
-  ).catch(() => true); // Default to responding on error
+  // Simple response gate: only respond when directly addressed
+  const lower = resolvedContent.toLowerCase();
+  const namesMentioned = /\baurora\b/.test(lower) || /\bsigma[-\s]?7\b/.test(lower);
 
-  if (!shouldRespond) {
-    console.log(`[SIGMA-7] Skipping message from ${senderDisplayName} — not relevant.`);
+  // Check if this message is a reply to one of the bot's own messages
+  let isReplyToBot = false;
+  if (message.reference?.messageId) {
+    const refMsg = await message.channel.messages
+      .fetch(message.reference.messageId)
+      .catch(() => null);
+    if (refMsg && refMsg.author.id === botId) isReplyToBot = true;
+  }
+
+  if (!botMentioned && !namesMentioned && !isReplyToBot) {
+    console.log(`[SIGMA-7] Skipping message from ${senderDisplayName} — not addressed.`);
     return;
   }
 
