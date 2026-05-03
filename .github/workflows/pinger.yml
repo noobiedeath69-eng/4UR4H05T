@@ -1,15 +1,17 @@
-name: Replit Pinger
+name: Replit Pinger Indefinite
 
 on:
   schedule:
-    - cron: '*/10 * * * *' # Runs every 10 minutes
-  workflow_dispatch: # Allows you to run it manually for testing
+    # This triggers every 5 minutes (the most frequent GitHub allows)
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+    # This button lets you test it manually in the Actions tab
 
 jobs:
-  ping:
+  pinger_job:
     runs-on: ubuntu-latest
     steps:
-      - name: Ping Replit URL
+      - name: Send Keep-Alive Signal to Operation Aurora
         run: |
-          curl -I https://e4399b89-a932-4013-b405-02722b2172b8-00-14l11mw8xr4hu.pike.replit.dev
-
+          curl -I -s -L "https://e4399b89-a932-4013-b405-02722b2172b8-00-14l11mw8xr4hu.pike.replit.dev"
+          echo "Ping sent at $(date)"
