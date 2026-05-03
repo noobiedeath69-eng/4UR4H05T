@@ -40,8 +40,8 @@ const app = express();
 app.get("/", (_req, res) => {
   res.send("System Heartbeat: Online");
 });
-app.listen(3000, () => {
-  console.log("[SIGMA-7] Keep-alive server running on port 3000.");
+app.listen(5000, () => {
+  console.log("[SIGMA-7] Keep-alive server running on port 5000.");
 });
 setInterval(() => {
   console.log("[SIGMA-7] Maintaining process priority...");
