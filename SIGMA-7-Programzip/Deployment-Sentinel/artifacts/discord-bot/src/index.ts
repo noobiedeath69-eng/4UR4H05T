@@ -455,8 +455,9 @@ app.get("/", (_req, res) => {
 </html>`);
 });
 
-app.listen(5000, () => {
-  console.log("[SIGMA-7] Dashboard running on port 5000.");
+const HTTP_PORT = parseInt(process.env["PORT"] ?? "5000", 10);
+app.listen(HTTP_PORT, "0.0.0.0", () => {
+  console.log(`[SIGMA-7] Dashboard running on port ${HTTP_PORT}.`);
 });
 
 setInterval(() => {
@@ -464,32 +465,39 @@ setInterval(() => {
 }, 280000);
 
 // ─── Discord bot ─────────────────────────────────────────────────────────────
-const token = process.env["DISCORD_BOT_TOKEN"];
-if (!token) throw new Error("DISCORD_BOT_TOKEN is not set.");
+try {
+  const token = process.env["DISCORD_BOT_TOKEN"];
+  if (!token) {
+    console.error("[SIGMA-7] DISCORD_BOT_TOKEN is not set — bot offline, dashboard still running.");
+  } else {
+    if (!process.env["OWNER_DISCORD_ID"]) {
+      console.warn("[SIGMA-7] WARNING: OWNER_DISCORD_ID is not set.");
+    }
 
-if (!process.env["OWNER_DISCORD_ID"]) {
-  console.warn("[SIGMA-7] WARNING: OWNER_DISCORD_ID is not set.");
+    console.log("[SIGMA-7] Loading lore documents...");
+    await seedInitialLore().catch((err) =>
+      console.error("[SIGMA-7] Lore seed failed:", err)
+    );
+    startAutoRefresh();
+
+    const client = createClient();
+    registerEvents(client);
+
+    const shutdown = () => {
+      console.log("[SIGMA-7] Shutting down...");
+      cleanupPidFile();
+      client.destroy();
+      process.exit(0);
+    };
+
+    process.on("SIGTERM", shutdown);
+    process.on("SIGINT", shutdown);
+    process.on("exit", cleanupPidFile);
+
+    await client.login(token);
+    discordClient = client;
+    console.log("[SIGMA-7] Discord bot connected.");
+  }
+} catch (err) {
+  console.error("[SIGMA-7] Bot startup failed — dashboard still running:", err);
 }
-
-console.log("[SIGMA-7] Loading lore documents...");
-await seedInitialLore().catch((err) =>
-  console.error("[SIGMA-7] Lore seed failed:", err)
-);
-startAutoRefresh();
-
-const client = createClient();
-registerEvents(client);
-
-const shutdown = () => {
-  console.log("[SIGMA-7] Shutting down...");
-  cleanupPidFile();
-  client.destroy();
-  process.exit(0);
-};
-
-process.on("SIGTERM", shutdown);
-process.on("SIGINT", shutdown);
-process.on("exit", cleanupPidFile);
-
-await client.login(token);
-discordClient = client;
