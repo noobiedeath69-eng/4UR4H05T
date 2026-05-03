@@ -1,4 +1,5 @@
 import fs from "fs";
+import express from "express";
 import { createClient, registerEvents } from "./bot.js";
 import { seedInitialLore, startAutoRefresh } from "./lib/lore.js";
 
@@ -33,6 +34,18 @@ function cleanupPidFile(): void {
 
 killPreviousInstance();
 writePidFile();
+
+// Keep-alive HTTP server
+const app = express();
+app.get("/", (_req, res) => {
+  res.send("System Heartbeat: Online");
+});
+app.listen(3000, () => {
+  console.log("[SIGMA-7] Keep-alive server running on port 3000.");
+});
+setInterval(() => {
+  console.log("[SIGMA-7] Maintaining process priority...");
+}, 280000);
 
 const token = process.env["DISCORD_BOT_TOKEN"];
 if (!token) {

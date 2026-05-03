@@ -11,9 +11,11 @@
     "@workspace/db": "workspace:*",
     "discord.js": "^14.18.0",
     "drizzle-orm": "catalog:",
+    "express": "^5.2.1",
     "openai": "^4.104.0"
   },
   "devDependencies": {
+    "@types/express": "^5.0.6",
     "@types/node": "catalog:",
     "tsx": "catalog:",
     "typescript": "~5.9.2"
