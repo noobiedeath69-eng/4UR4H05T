@@ -1,17 +1,23 @@
-name: Replit Pinger Indefinite
+name: Operation Aurora Turbo-Pinger
 
 on:
   schedule:
-    # This triggers every 5 minutes (the most frequent GitHub allows)
-    - cron: '*/5 * * * *'
-  workflow_dispatch:
-    # This button lets you test it manually in the Actions tab
+    - cron: '*/5 * * * *' # Triggers every 5 mins
+  workflow_dispatch:      # Manual trigger
 
 jobs:
-  pinger_job:
+  turbo_ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Send Keep-Alive Signal to Operation Aurora
+      - name: Multi-Stage Wakeup
         run: |
-          curl -I -s -L "https://e4399b89-a932-4013-b405-02722b2172b8-00-14l11mw8xr4hu.pike.replit.dev"
-          echo "Ping sent at $(date)"
+          echo "Starting 2-minute heavy wake cycle..."
+          # Ping once immediately
+          curl -s -L "https://e4399b89-a932-4013-b405-02722b2172b8-00-14l11mw8xr4hu.pike.replit.dev"
+          
+          sleep 60 # Wait 1 minute
+          
+          # Ping again halfway through the window
+          curl -s -L "https://e4399b89-a932-4013-b405-02722b2172b8-00-14l11mw8xr4hu.pike.replit.dev"
+          
+          echo "Bot should be wide awake."
