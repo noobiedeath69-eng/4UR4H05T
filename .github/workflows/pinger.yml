@@ -1,1 +1,15 @@
+name: Replit Pinger
+
+on:
+  schedule:
+    - cron: '*/10 * * * *' # Runs every 10 minutes
+  workflow_dispatch: # Allows you to run it manually for testing
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Replit URL
+        run: |
+          curl -I https://e4399b89-a932-4013-b405-02722b2172b8-00-14l11mw8xr4hu.pike.replit.dev
 
