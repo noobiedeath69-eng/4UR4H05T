@@ -16,26 +16,25 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Launch Pro Sentinel
+      - name: Install & Launch
         env:
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          # THE KEY: This forces Node to use the ESM loader for all TSX operations
-          NODE_OPTIONS: "--import tsx/esm"
         run: |
+          # 1. Install dependencies (Clean environment, no NODE_OPTIONS yet)
           npm install
           
-          # Jailbreak: Move internal package.json so it stops blocking the root
+          # 2. Jailbreak the internal package.json
           ROGUE_JSON="SIGMA-7-Programzip/Deployment-Sentinel/artifacts/discord-bot/package.json"
           if [ -f "$ROGUE_JSON" ]; then 
             mv "$ROGUE_JSON" "${ROGUE_JSON}.disabled"
             echo "💥 Rogue firewall disabled."
           fi
           
-          echo "🛡️ SENTINEL ONLINE. Executing with ESM Loader..."
+          echo "🛡️ SENTINEL ONLINE. Loading ESM environment..."
           
-          # We use the direct tsx execution without the broken --format flag
-          until npx tsx server/index.ts; do
+          # 3. Launch with NODE_OPTIONS defined ONLY for this process
+          until NODE_OPTIONS="--import tsx/esm" npx tsx server/index.ts; do
             echo "⚠️ Crashed. Respawning..."
             sleep 5
           done
