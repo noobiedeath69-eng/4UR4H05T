@@ -1,6 +1,7 @@
-import { db, deploymentsTable, whitelistedUsersTable, whitelistedRolesTable, sentientChannelsTable, registeredPlacesTable, conversationHistoryTable } from "@workspace/db";
+// UPDATED: Changed @workspace/db to #workspace/db to match our package.json imports
+import { db, deploymentsTable, whitelistedUsersTable, whitelistedRolesTable, sentientChannelsTable, registeredPlacesTable, conversationHistoryTable } from "#workspace/db";
 import { eq, and, asc, desc, inArray } from "drizzle-orm";
-import type { NewDeployment } from "@workspace/db";
+import type { NewDeployment } from "#workspace/db";
 
 export async function createDeploymentRecord(data: NewDeployment) {
   const [record] = await db.insert(deploymentsTable).values(data).returning();
