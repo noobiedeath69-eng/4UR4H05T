@@ -1,18 +1,22 @@
-name: GitHub Bot Host (AssetAurora Edition)
+name: AssetAurora Immortal Sentinel
 
 on:
   schedule:
+    # 1. ANTI-SLEEP: Restarts every 4 hours to bypass GitHub's 6-hour limit
     - cron: '0 */4 * * *'
   workflow_dispatch:
+  push:
+    branches: [ main ]
 
 env:
-  # May 2026 Compatibility Flags
+  # 2026 Compatibility Flags
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
   NODE_ENV: development
 
 jobs:
-  run-bot:
+  host-and-protect:
     runs-on: ubuntu-latest
+    
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -20,20 +24,25 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20' # Matches your @types/node version
+          node-version: '20'
 
       - name: Install Dependencies
+        # 2. AUTO-HOSTER: Installs everything in your package.json automatically
         run: |
           npm install
-          # We manually ensure tsx is available globally just in case
           npm install -g tsx
 
-      - name: Start AssetAurora Engine
+      - name: Run Sentinel Loop
         env:
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
-          # If your code uses a DATABASE_URL or other vars, add them here!
-        run: npx tsx server/index.ts
-
+        # 3. AUTO-RESTART: If the bot crashes, it restarts immediately.
+        # If GitHub tries to kill it, the Cron Job starts a new one anyway.
+        run: |
+          echo "Starting the Immortal Sentinel..."
+          until npx tsx server/index.ts; do
+            echo "Bot crashed with exit code $?. Respawning in 5 seconds..." >&2
+            sleep 5
+          done
       - name: Run Discord Bot
         env:
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
