@@ -1,28 +1,29 @@
-name: Operation Aurora Final Hope
+name: GitHub Bot Host
 
 on:
   schedule:
-    - cron: '*/5 * * * *'
-  workflow_dispatch:
+    - cron: '0 */4 * * *' # Restarts every 4 hours to beat the 6-hour limit
+  workflow_dispatch:      # Manual Start button
 
 jobs:
-  ping_job:
+  run-bot:
     runs-on: ubuntu-latest
     steps:
-      - name: The Triple Knock
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install Dependencies
         run: |
-          # 1. First Ping
-          curl -sL "https://e4399b89-a932-4013-b405-02722b2172b8-00-14l11mw8xr4hu.pike.replit.dev"
-          echo "First knock sent."
-          
-          sleep 120 # Wait 2 minutes
-          
-          # 2. Second Ping
-          curl -sL "https://e4399b89-a932-4013-b405-02722b2172b8-00-14l11mw8xr4hu.pike.replit.dev"
-          echo "Second knock sent."
-          
-          sleep 120 # Wait another 2 minutes
-          
-          # 3. Third Ping
-          curl -sL "https://e4399b89-a932-4013-b405-02722b2172b8-00-14l11mw8xr4hu.pike.replit.dev"
-          echo "Third knock sent. Replit should stay awake until next cron."
+          pip install -r requirements.txt
+          # If you don't have a requirements.txt, use: 
+          # pip install discord.py flask 
+
+      - name: Run Discord Bot
+        env:
+          DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }} 
+        run: python main.py
