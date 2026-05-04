@@ -2,10 +2,10 @@ name: SIGMA-7-Full-Sentinel
 
 on:
   schedule:
-    - cron: '0 */4 * * *' # Anti-sleep: Reboots every 4 hours to bypass GitHub limits
-  workflow_dispatch:      # Allows you to start it manually
+    - cron: '0 */4 * * *'
+  workflow_dispatch:
   push:
-    branches: [ main ]    # Restarts whenever you update your code
+    branches: [ main ]
 
 jobs:
   immortal-host:
@@ -22,29 +22,26 @@ jobs:
 
       - name: 3. Install & Launch
         env:
-          # Make sure these secrets are set in your GitHub Repo Settings!
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
         run: |
-          # A. Install root dependencies (Express, etc.)
+          # 1. Install root dependencies
           npm install
           
-          # B. Go deep and install bot-specific dependencies
-          echo "📦 Installing deep-level SIGMA-7 dependencies..."
-          cd SIGMA-7-Programzip/Deployment-Sentinel/artifacts/discord-bot && npm install
+          # 2. Go deep and install using the Link flag
+          echo "📦 Forcing installation of SIGMA-7 dependencies..."
+          cd SIGMA-7-Programzip/Deployment-Sentinel/artifacts/discord-bot
+          npm install --install-links --if-present
           
-          # C. Return to the root folder
+          # 3. Return to root
           cd ../../../../../
           
-          # D. Deploy your Slash Commands to Discord's servers
+          # 4. Register Commands
           echo "🚀 Registering Slash Commands..."
           npx tsx SIGMA-7-Programzip/Deployment-Sentinel/artifacts/discord-bot/src/commands/deploy.ts
           
-          # E. THE SENTINEL: Keep the server and bot running indefinitely
-          echo "🛡️ SENTINEL ACTIVE: Monitoring AssetAurora..."
+          # 5. Start the Sentinel
+          echo "🛡️ SENTINEL ACTIVE..."
           until npx tsx server/index.ts; do
-            echo "⚠️ Bot crashed with exit code $?. Respawning in 5 seconds..." >&2
-            sleep 5
-          done
             echo "Bot crashed. Respawning..." >&2
             sleep 5
           done
