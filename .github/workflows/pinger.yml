@@ -1,31 +1,13 @@
-name: SIGMA-7 Full Launch
-
-# 1. When to run
-on:
-  schedule:
-    - cron: '0 */4 * * *'
-  workflow_dispatch:
-  push:
-    branches: [ main ]
-
-# 2. The Worker (The part you were missing!)
-jobs:
-  launch-sentinel:
-    runs-on: ubuntu-latest
-    
-    # 3. What the worker actually does
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
       - name: Deploy and Host
         env:
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
         run: |
-          npm install
+          # 1. Install everything including workspaces
+          npm install --include=dev --workspaces --if-present
+          npm install --include=dev 
+          
           echo "🚀 Deploying Commands..."
+          # We run this from the root so it can see the @workspace links
           npx tsx SIGMA-7-Programzip/Deployment-Sentinel/artifacts/discord-bot/src/commands/deploy.ts
           
           echo "🛡️ Sentinel Active. Starting Server..."
