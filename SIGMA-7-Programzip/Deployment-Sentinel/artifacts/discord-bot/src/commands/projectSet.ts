@@ -14,9 +14,13 @@ import { setSentientChannel } from "../lib/db.js";
 export async function handleProjectSet(interaction: ChatInputCommandInteraction): Promise<void> {
   if (!interaction.guild) return;
 
-  if (!isOwner(interaction.user.id)) {
+  const ownerId = process.env["OWNER_DISCORD_ID"];
+  const callerId = interaction.user.id;
+  console.log(`[SIGMA-7] /projectset called by ${callerId} | OWNER_DISCORD_ID="${ownerId ?? "(not set)"}"`);
+
+  if (!isOwner(callerId)) {
     await interaction.reply({
-      content: "🔒 **Access Denied.** This command is restricted to the bot owner.",
+      content: `🔒 **Access Denied.** This command is restricted to the bot owner.\n\`Your ID: ${callerId}\``,
       ephemeral: true,
     });
     return;
