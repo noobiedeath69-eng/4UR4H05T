@@ -1,4 +1,4 @@
-name: SIGMA-7-ULTIMATE-SENTINEL
+name: SIGMA-7-FINAL-STAND-V2
 
 on:
   schedule:
@@ -11,23 +11,19 @@ jobs:
   run-bot:
     runs-on: ubuntu-latest
     steps:
-      - name: 1. Clone
-        uses: actions/checkout@v4
-
-      - name: 2. Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: 3. Launch Immortal Sentinel
+      - name: Launch
         env:
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
-          # These other secrets might be needed for your DB connection
-          DATABASE_URL: ${{ secrets.DATABASE_URL }} 
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           npm install
-          echo "🛡️ Sentinel Active. Launching Server..."
+          echo "🛡️ Sentinel Online. No more aliases. Direct paths only."
           until npx tsx server/index.ts; do
-            echo "Crashed. Respawning in 5s..." >&2
+            echo "Crashed. Respawning..." >&2
             sleep 5
           done
