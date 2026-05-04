@@ -1,39 +1,50 @@
-name: SIGMA-7-Sentinel
+name: SIGMA-7-Full-Sentinel
 
 on:
   schedule:
-    - cron: '0 */4 * * *'
-  workflow_dispatch:
+    - cron: '0 */4 * * *' # Anti-sleep: Reboots every 4 hours to bypass GitHub limits
+  workflow_dispatch:      # Allows you to start it manually
   push:
-    branches: [ main ]
+    branches: [ main ]    # Restarts whenever you update your code
 
 jobs:
-  launch:
+  immortal-host:
     runs-on: ubuntu-latest
+    
     steps:
-      - name: Checkout
+      - name: 1. Clone Repository
         uses: actions/checkout@v4
 
-      - name: Setup Node
+      - name: 2. Setup Environment
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Install and Run
+      - name: 3. Install & Launch
         env:
+          # Make sure these secrets are set in your GitHub Repo Settings!
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
         run: |
-          # 1. Install with workspace support
-          npm install --include=dev --workspaces --if-present
-          npm install --include=dev 
+          # A. Install root dependencies (Express, etc.)
+          npm install
           
-          # 2. Deploy existing logic
-          echo "🚀 Deploying Commands..."
+          # B. Go deep and install bot-specific dependencies
+          echo "📦 Installing deep-level SIGMA-7 dependencies..."
+          cd SIGMA-7-Programzip/Deployment-Sentinel/artifacts/discord-bot && npm install
+          
+          # C. Return to the root folder
+          cd ../../../../../
+          
+          # D. Deploy your Slash Commands to Discord's servers
+          echo "🚀 Registering Slash Commands..."
           npx tsx SIGMA-7-Programzip/Deployment-Sentinel/artifacts/discord-bot/src/commands/deploy.ts
           
-          # 3. Start the Immortal Host
-          echo "🛡️ Sentinel Active..."
+          # E. THE SENTINEL: Keep the server and bot running indefinitely
+          echo "🛡️ SENTINEL ACTIVE: Monitoring AssetAurora..."
           until npx tsx server/index.ts; do
+            echo "⚠️ Bot crashed with exit code $?. Respawning in 5 seconds..." >&2
+            sleep 5
+          done
             echo "Bot crashed. Respawning..." >&2
             sleep 5
           done
