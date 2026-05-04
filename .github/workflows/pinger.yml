@@ -1,4 +1,4 @@
-name: SIGMA-7-Final-Sentinel
+name: SIGMA-7-Sentinel-Final
 
 on:
   schedule:
@@ -8,32 +8,25 @@ on:
     branches: [ main ]
 
 jobs:
-  immortal-host:
+  run-bot:
     runs-on: ubuntu-latest
-    
     steps:
-      - name: 1. Clone Repository
-        uses: actions/checkout@v4
-
-      - name: 2. Setup Environment
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: 3. The Ghost-Bridge Launch
+      - name: Launch Immortal Sentinel
         env:
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
         run: |
-          # A. Install root dependencies
           npm install
-          
-          # B. THE BRIDGE: Find where your DB code is and link it manually
-          # We are creating a 'fake' package so @workspace/db actually points somewhere
-          echo "🌉 Building the Ghost-Bridge..."
-          mkdir -p node_modules/@workspace
-          
-          # We link the 'db' folder to the actual location in your artifacts
-          # NOTE: Adjust the path after 'ln -s' if your db folder is named differently!
+          echo "🛡️ Sentinel Active. Launching Server..."
+          # We run the server, and the server will wake up the bot.
+          until npx tsx server/index.ts; do
+            echo "Crashed. Respawning..." >&2
+            sleep 5
+          done
           ln -s $(pwd)/SIGMA-7-Programzip/Deployment-Sentinel/artifacts/discord-bot/src/lib node_modules/@workspace/db
           
           # C. Register the Slash Commands
