@@ -20,15 +20,22 @@ jobs:
         env:
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          # THE KEY: This forces Node to use the ESM loader for all TSX operations
+          NODE_OPTIONS: "--import tsx/esm"
         run: |
           npm install
           
-          # Jailbreak: Move internal package.json so it stops blocking the root tsconfig
+          # Jailbreak: Move internal package.json so it stops blocking the root
           ROGUE_JSON="SIGMA-7-Programzip/Deployment-Sentinel/artifacts/discord-bot/package.json"
-          if [ -f "$ROGUE_JSON" ]; then mv "$ROGUE_JSON" "${ROGUE_JSON}.disabled"; fi
+          if [ -f "$ROGUE_JSON" ]; then 
+            mv "$ROGUE_JSON" "${ROGUE_JSON}.disabled"
+            echo "💥 Rogue firewall disabled."
+          fi
           
-          # Force ESM format and use root tsconfig for aliases
-          until npx tsx --format=esm --tsconfig ./tsconfig.json server/index.ts; do
-            echo "Respawning..."
+          echo "🛡️ SENTINEL ONLINE. Executing with ESM Loader..."
+          
+          # We use the direct tsx execution without the broken --format flag
+          until npx tsx server/index.ts; do
+            echo "⚠️ Crashed. Respawning..."
             sleep 5
           done
