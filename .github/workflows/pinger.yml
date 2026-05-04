@@ -1,51 +1,23 @@
-name: SIGMA-7 Immortal Sentinel
-
-on:
-  schedule:
-    - cron: '0 */4 * * *' # Anti-sleep: Restarts every 4 hours
-  workflow_dispatch:
-  push:
-    branches: [ main ]
-
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
-
-jobs:
-  run-service:
-    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Install & Deploy
+      - name: SIGMA-7 Full Launch
         env:
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
         run: |
+          # Command 1: Install
           npm install
+          
+          # Command 2: Deploy
           echo "🚀 Deploying SIGMA-7 Commands..."
           npx tsx SIGMA-7-Programzip/Deployment-Sentinel/artifacts/discord-bot/src/commands/deploy.ts
-
-      - name: Run Sentinel
-        env:
-          DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
-        run: |
+          
+          # Command 3: Host
           echo "🛡️ Sentinel Active. Starting Server..."
           until npx tsx server/index.ts; do
             echo "Crash detected. Respawning..." >&2
             sleep 5
           done
-          DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
-        # 3. AUTO-RESTART: If the bot crashes, it restarts immediately.
-        # If GitHub tries to kill it, the Cron Job starts a new one anyway.
-        run: |
-          echo "Starting the Immortal Sentinel..."
-          until npx tsx server/index.ts; do
-            echo "Bot crashed with exit code $?. Respawning in 5 seconds..." >&2
-            sleep 5
-          done
-      - name: Run Discord Bot
-        env:
-          DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
-        run: python main.py
