@@ -1,6 +1,18 @@
-import { db, deploymentsTable, whitelistedUsersTable, whitelistedRolesTable, sentientChannelsTable, registeredPlacesTable, conversationHistoryTable } from "@workspace/db";
+import { 
+  db, 
+  deploymentsTable, 
+  whitelistedUsersTable, 
+  whitelistedRolesTable, 
+  sentientChannelsTable, 
+  registeredPlacesTable, 
+  conversationHistoryTable 
+} from "../../../../../../../db/index.ts";
 import { eq, and } from "drizzle-orm";
-import type { NewDeployment } from "@workspace/db";
+import type { NewDeployment } from "../../../../../../../db/schema.ts";
+
+/**
+ * DEPLOYMENT LOGIC
+ */
 
 export async function createDeploymentRecord(data: NewDeployment) {
   const [record] = await db.insert(deploymentsTable).values(data).returning();
@@ -34,6 +46,83 @@ export async function endDeploymentRecord(id: number) {
     .where(eq(deploymentsTable.id, id));
 }
 
+/**
+ * WHITELIST LOGIC
+ */
+
+export async function isUserWhitelisted(userId: string): Promise<boolean> {
+  const [record] = await db
+    .select()
+    .from(whitelistedUsersTable)
+    .where(eq(whitelistedUsersTable.userId, userId))
+    .limit(1);
+  return !!record;
+}
+
+export async function addWhitelistedUser(userId: string, username: string) {
+  await db
+    .insert(whitelistedUsersTable)
+    .values({ userId, username })
+    .onConflictDoNothing();
+}
+
+export async function isRoleWhitelisted(roleId: string): Promise<boolean> {
+  const [record] = await db
+    .select()
+    .from(whitelistedRolesTable)
+    .where(eq(whitelistedRolesTable.roleId, roleId))
+    .limit(1);
+  return !!record;
+}
+
+export async function addWhitelistedRole(roleId: string, roleName: string) {
+  await db
+    .insert(whitelistedRolesTable)
+    .values({ roleId, roleName })
+    .onConflictDoNothing();
+}
+
+/**
+ * CHANNEL & PLACE REGISTRY
+ */
+
+export async function addPlace(name: string) {
+  await db.insert(registeredPlacesTable).values({ name }).onConflictDoNothing();
+}
+
+export async function getPlaces() {
+  return db.select().from(registeredPlacesTable).orderBy(registeredPlacesTable.name);
+}
+
+export async function getSentientChannel(guildId: string) {
+  const [record] = await db
+    .select()
+    .from(sentientChannelsTable)
+    .where(eq(sentientChannelsTable.guildId, guildId))
+    .limit(1);
+  return record ?? null;
+}
+
+export async function setSentientChannel(guildId: string, channelId: string, channelName: string) {
+  await db
+    .insert(sentientChannelsTable)
+    .values({ guildId, channelId, channelName })
+    .onConflictDoUpdate({
+      target: sentientChannelsTable.channelId,
+      set: { channelId, channelName, guildId },
+    });
+
+  const existing = await db
+    .select()
+    .from(sentientChannelsTable)
+    .where(and(eq(sentientChannelsTable.guildId, guildId)));
+
+  for (const row of existing) {
+    if (row.channelId !== channelId) {
+      await db.delete(sentientChannelsTable).where(eq(sentientChannelsTable.id, row.id));
+    }
+  }
+}
 export async function isUserWhitelisted(userId: string): Promise<boolean> {
   const [record] = await db
     .select()
