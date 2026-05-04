@@ -1,4 +1,4 @@
-name: SIGMA-7-FINAL-SENTINEL
+name: SIGMA-7-FINAL-SENTINEL-SYMLINK
 
 on:
   schedule:
@@ -16,25 +16,29 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install & Launch
+      - name: Hard-Wire & Launch
         env:
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
-          # 1. Install dependencies (Clean environment, no NODE_OPTIONS yet)
           npm install
           
-          # 2. Jailbreak the internal package.json
+          echo "🔗 HARD-WIRING DATABASE LINK..."
+          # We create a 'node_modules' folder inside the bot's deep directory
+          # and link our root 'db' folder into it.
+          # This makes "@workspace/db" physically exist for the bot.
+          BOT_LIB="SIGMA-7-Programzip/Deployment-Sentinel/artifacts/discord-bot/node_modules"
+          mkdir -p $BOT_LIB
+          ln -s "$(pwd)/db" "$BOT_LIB/@workspace-db-link"
+
+          # Rename the rogue package.json so it doesn't interfere with the root context
           ROGUE_JSON="SIGMA-7-Programzip/Deployment-Sentinel/artifacts/discord-bot/package.json"
-          if [ -f "$ROGUE_JSON" ]; then 
-            mv "$ROGUE_JSON" "${ROGUE_JSON}.disabled"
-            echo "💥 Rogue firewall disabled."
-          fi
+          if [ -f "$ROGUE_JSON" ]; then mv "$ROGUE_JSON" "${ROGUE_JSON}.disabled"; fi
+
+          echo "🛡️ SENTINEL ONLINE. Direct Link Established."
           
-          echo "🛡️ SENTINEL ONLINE. Loading ESM environment..."
-          
-          # 3. Launch with NODE_OPTIONS defined ONLY for this process
-          until NODE_OPTIONS="--import tsx/esm" npx tsx server/index.ts; do
+          # Force the launch using the root config
+          until NODE_OPTIONS="--import tsx/esm" npx tsx --tsconfig ./tsconfig.json server/index.ts; do
             echo "⚠️ Crashed. Respawning..."
             sleep 5
           done
