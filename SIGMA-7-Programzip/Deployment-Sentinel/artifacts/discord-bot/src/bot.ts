@@ -7,6 +7,7 @@ import {
   ButtonInteraction,
   ChatInputCommandInteraction,
   AutocompleteInteraction,
+  StringSelectMenuInteraction,
   TextChannel,
   GuildMember,
 } from "discord.js";
@@ -15,7 +16,7 @@ import { handleDeploymentEnd } from "./commands/deploymentEnd.js";
 import { handleDeploy } from "./commands/deploy.js";
 import { handleUserPermit } from "./commands/userPermit.js";
 import { handleRegisterPlace } from "./commands/registerPlace.js";
-import { handleProjectSet } from "./commands/projectSet.js";
+import { handleProjectSet, handleProjectSetSelect } from "./commands/projectSet.js";
 import { handleLoreUpdate } from "./commands/loreUpdate.js";
 import { handleLoreRemove } from "./commands/loreRemove.js";
 import { handleMemClear } from "./commands/memClear.js";
@@ -89,6 +90,13 @@ export function registerEvents(client: Client): void {
       return;
     }
 
+    if (interaction.isStringSelectMenu()) {
+      await handleSelectMenuInteraction(interaction as StringSelectMenuInteraction).catch((err) => {
+        console.error("[SIGMA-7] Select menu error:", err);
+      });
+      return;
+    }
+
     if (interaction.isButton()) {
       await handleButtonInteraction(interaction as ButtonInteraction).catch((err) => {
         console.error("[SIGMA-7] Button interaction error:", err);
@@ -146,6 +154,12 @@ async function handleSlashCommand(interaction: ChatInputCommandInteraction, clie
 
     default:
       break;
+  }
+}
+
+async function handleSelectMenuInteraction(interaction: StringSelectMenuInteraction): Promise<void> {
+  if (interaction.customId === "projectset_channel_select") {
+    await handleProjectSetSelect(interaction);
   }
 }
 
