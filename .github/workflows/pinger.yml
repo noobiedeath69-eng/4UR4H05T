@@ -1,4 +1,4 @@
-name: SIGMA-7-Sentinel-Final
+name: SIGMA-7-GOD-SENTINEL
 
 on:
   schedule:
@@ -20,20 +20,20 @@ jobs:
         env:
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
         run: |
+          # 1. Install root only
           npm install
-          echo "🛡️ Sentinel Active. Launching Server..."
-          # We run the server, and the server will wake up the bot.
-          until npx tsx server/index.ts; do
+          
+          # 2. Set the path variable
+          DB_PATH="./SIGMA-7-Programzip/Deployment-Sentinel/artifacts/discord-bot/src/lib/db.ts"
+          
+          echo "🛡️ Sentinel Active. Forcing Workspace Aliases..."
+          
+          # 3. We use the --alias flag to point @workspace/db to the ACTUAL file 
+          # so the import inside the bot folder stops crashing.
+          until npx tsx --alias "@workspace/db=$DB_PATH" server/index.ts; do
             echo "Crashed. Respawning..." >&2
             sleep 5
           done
-          ln -s $(pwd)/SIGMA-7-Programzip/Deployment-Sentinel/artifacts/discord-bot/src/lib node_modules/@workspace/db
-          
-          # C. Register the Slash Commands
-          echo "🚀 Registering Slash Commands..."
-          npx tsx SIGMA-7-Programzip/Deployment-Sentinel/artifacts/discord-bot/src/commands/deploy.ts
-          
-          # D. Start the Sentinel
           echo "🛡️ SENTINEL ACTIVE..."
           until npx tsx server/index.ts; do
             echo "⚠️ Bot crashed. Respawning..." >&2
