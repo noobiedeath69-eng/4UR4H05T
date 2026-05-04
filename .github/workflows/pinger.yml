@@ -20,72 +20,29 @@ jobs:
         with:
           node-version: '20'
 
-      - name: 3. The "Smart" Launch
+      - name: 3. The Ghost-Bridge Launch
         env:
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
         run: |
-          # A. Only install at the ROOT. 
-          # We are NOT going to cd into the subfolders anymore.
+          # A. Install root dependencies
           npm install
           
-          # B. Register the Slash Commands
-          # We use npx tsx from the root. It should see the folder structure.
+          # B. THE BRIDGE: Find where your DB code is and link it manually
+          # We are creating a 'fake' package so @workspace/db actually points somewhere
+          echo "🌉 Building the Ghost-Bridge..."
+          mkdir -p node_modules/@workspace
+          
+          # We link the 'db' folder to the actual location in your artifacts
+          # NOTE: Adjust the path after 'ln -s' if your db folder is named differently!
+          ln -s $(pwd)/SIGMA-7-Programzip/Deployment-Sentinel/artifacts/discord-bot/src/lib node_modules/@workspace/db
+          
+          # C. Register the Slash Commands
           echo "🚀 Registering Slash Commands..."
           npx tsx SIGMA-7-Programzip/Deployment-Sentinel/artifacts/discord-bot/src/commands/deploy.ts
           
-          # C. Start the Sentinel
+          # D. Start the Sentinel
           echo "🛡️ SENTINEL ACTIVE..."
           until npx tsx server/index.ts; do
             echo "⚠️ Bot crashed. Respawning..." >&2
-            sleep 5
-          done
-          sed -i 's/workspace:\*/latest/g' package.json
-          sed -i 's/catalog:/latest/g' package.json
-          
-          # D. Install deep dependencies now that the protocols are dead
-          echo "📦 Installing deep dependencies..."
-          npm install --no-package-lock --if-present
-          
-          # E. Return to the root
-          cd ../../../../../
-          
-          # F. Register the Slash Commands
-          echo "🚀 Registering Slash Commands..."
-          npx tsx SIGMA-7-Programzip/Deployment-Sentinel/artifacts/discord-bot/src/commands/deploy.ts
-          
-          # G. Start the Sentinel Loop
-          echo "🛡️ SENTINEL ACTIVE: Monitoring AssetAurora..."
-          until npx tsx server/index.ts; do
-            echo "⚠️ Bot crashed. Respawning in 5 seconds..." >&2
-            sleep 5
-          done
-          sed -i 's/workspace:\*/latest/g' package.json
-          
-          # D. Install deep dependencies now that the protocol is fixed
-          echo "📦 Installing deep dependencies..."
-          npm install --no-package-lock --if-present
-          
-          # E. Return to the root
-          cd ../../../../../
-          
-          # F. Register the Slash Commands
-          echo "🚀 Registering Slash Commands..."
-          npx tsx SIGMA-7-Programzip/Deployment-Sentinel/artifacts/discord-bot/src/commands/deploy.ts
-          
-          # G. Start the Sentinel Loop
-          echo "🛡️ SENTINEL ACTIVE: Monitoring AssetAurora..."
-          until npx tsx server/index.ts; do
-            echo "⚠️ Bot crashed. Respawning in 5 seconds..." >&2
-            sleep 5
-          done
-          
-          # 4. Register Commands
-          echo "🚀 Registering Slash Commands..."
-          npx tsx SIGMA-7-Programzip/Deployment-Sentinel/artifacts/discord-bot/src/commands/deploy.ts
-          
-          # 5. Start the Sentinel
-          echo "🛡️ SENTINEL ACTIVE..."
-          until npx tsx server/index.ts; do
-            echo "Bot crashed. Respawning..." >&2
             sleep 5
           done
