@@ -5,6 +5,9 @@ import { createServer } from "http";
 
 import { Client, GatewayIntentBits } from 'discord.js';
 
+// This wakes up the SIGMA-7 bot logic you found in the src folder
+import "../SIGMA-7-Programzip/Deployment-Sentinel/artifacts/discord-bot/src/bot.js";
+
 const client = new Client({ 
     intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages] 
 });
