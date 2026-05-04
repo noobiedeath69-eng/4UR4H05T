@@ -3,6 +3,19 @@ import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
 
+import { Client, GatewayIntentBits } from 'discord.js';
+
+const client = new Client({ 
+    intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages] 
+});
+
+client.once('ready', () => {
+    console.log(`✅ Discord Bot is online as ${client.user?.tag}`);
+});
+
+// Use the secret from your environment variables
+client.login(process.env.DISCORD_TOKEN);
+
 const app = express();
 const httpServer = createServer(app);
 
