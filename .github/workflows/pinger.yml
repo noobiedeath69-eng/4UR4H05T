@@ -1,39 +1,41 @@
-name: AssetAurora Immortal Sentinel
+name: SIGMA-7 Immortal Sentinel
 
 on:
   schedule:
-    # 1. ANTI-SLEEP: Restarts every 4 hours to bypass GitHub's 6-hour limit
-    - cron: '0 */4 * * *'
+    - cron: '0 */4 * * *' # Anti-sleep: Restarts every 4 hours
   workflow_dispatch:
   push:
     branches: [ main ]
 
 env:
-  # 2026 Compatibility Flags
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
-  NODE_ENV: development
 
 jobs:
-  host-and-protect:
+  run-service:
     runs-on: ubuntu-latest
-    
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Install Dependencies
-        # 2. AUTO-HOSTER: Installs everything in your package.json automatically
+      - name: Install & Deploy
+        env:
+          DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
         run: |
           npm install
-          npm install -g tsx
+          echo "🚀 Deploying SIGMA-7 Commands..."
+          npx tsx SIGMA-7-Programzip/Deployment-Sentinel/artifacts/discord-bot/src/commands/deploy.ts
 
-      - name: Run Sentinel Loop
+      - name: Run Sentinel
         env:
+          DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+        run: |
+          echo "🛡️ Sentinel Active. Starting Server..."
+          until npx tsx server/index.ts; do
+            echo "Crash detected. Respawning..." >&2
+            sleep 5
+          done
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
         # 3. AUTO-RESTART: If the bot crashes, it restarts immediately.
         # If GitHub tries to kill it, the Cron Job starts a new one anyway.
