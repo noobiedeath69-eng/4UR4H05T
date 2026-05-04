@@ -1,0 +1,68 @@
+name: SIGMA-7 AURORA — Runtime
+
+on:
+  schedule:
+    - cron: '0 */5 * * *'
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  run-bot:
+    name: Bot Runtime
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+          cache-dependency-path: 'SIGMA-7-Programzip/Deployment-Sentinel/pnpm-lock.yaml'
+
+      - name: Install dependencies
+        working-directory: SIGMA-7-Programzip/Deployment-Sentinel
+        run: pnpm install --frozen-lockfile
+
+      - name: Run bot with auto-restart
+        working-directory: SIGMA-7-Programzip/Deployment-Sentinel
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          OWNER_DISCORD_ID: ${{ secrets.OWNER_DISCORD_ID }}
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+          AI_INTEGRATIONS_OPENAI_API_KEY: ${{ secrets.AI_INTEGRATIONS_OPENAI_API_KEY }}
+          AI_INTEGRATIONS_OPENAI_BASE_URL: ${{ secrets.AI_INTEGRATIONS_OPENAI_BASE_URL }}
+          PORT: 5000
+          NODE_ENV: production
+        run: |
+          START_TIME=$(date +%s)
+          RESTART_COUNT=0
+
+          while true; do
+            ELAPSED=$(( $(date +%s) - START_TIME ))
+
+            # Exit cleanly at 4h 45min so the next scheduled run can take over
+            if [ $ELAPSED -gt 17100 ]; then
+              echo "[SIGMA-7] Scheduled handoff — exiting for fresh run (uptime: ${ELAPSED}s, restarts: ${RESTART_COUNT})"
+              exit 0
+            fi
+
+            echo "[SIGMA-7] Starting bot... (uptime: ${ELAPSED}s, restarts: ${RESTART_COUNT})"
+            pnpm --filter @workspace/discord-bot run dev || true
+            EXIT_CODE=$?
+
+            RESTART_COUNT=$((RESTART_COUNT + 1))
+            echo "[SIGMA-7] Process exited with code ${EXIT_CODE}. Restarting in 5 seconds..."
+            sleep 5
+          done

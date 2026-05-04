@@ -6,9 +6,9 @@ import {
   sentientChannelsTable, 
   registeredPlacesTable, 
   conversationHistoryTable 
-} from "../../../../../../../db/index.ts";
+} from "@workspace/db";
 import { eq, and } from "drizzle-orm";
-import type { NewDeployment } from "../../../../../../../db/schema.ts";
+import type { NewDeployment } from "@workspace/db";
 
 /**
  * DEPLOYMENT LOGIC

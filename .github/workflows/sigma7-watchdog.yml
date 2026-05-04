@@ -1,0 +1,34 @@
+name: SIGMA-7 AURORA — Watchdog
+
+on:
+  workflow_run:
+    workflows:
+      - "SIGMA-7 AURORA — Runtime"
+    types:
+      - completed
+
+jobs:
+  watchdog:
+    name: Restart on completion
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion != 'cancelled'
+
+    steps:
+      - name: Re-trigger runtime workflow
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const conclusion = context.payload.workflow_run.conclusion;
+            const runId = context.payload.workflow_run.id;
+            console.log(`Runtime workflow run #${runId} ended with conclusion: ${conclusion}`);
+            console.log('Dispatching fresh runtime...');
+
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'sigma7-bot.yml',
+              ref: context.payload.workflow_run.head_branch || 'main',
+            });
+
+            console.log('Fresh runtime dispatched successfully.');
