@@ -1,32 +1,32 @@
-name: GitHub Bot Host 2026 Edition
+name: GitHub Bot Host 2026 Clean
 
 on:
   schedule:
     - cron: '0 */4 * * *'
   workflow_dispatch:
 
-# This forces the runner to use the new Node.js 24 engine immediately
+# We remove the FORCE flag because GitHub is now doing it by default,
+# which was causing the "contradiction" warning.
 env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 
 jobs:
   run-bot:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4 # Note: V4 is compatible with Node 24 runners
+        uses: actions/checkout@v4
+        # Checkout v4 is Node 24 ready, even if it "targets" 20.
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11' # Upgraded Python for 2026 stability
+          python-version: '3.11'
 
       - name: Install Dependencies
         run: |
-          pip install --upgrade pip
+          python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-          # Manual fallback if you don't have a requirements file:
-          # pip install discord.py
 
       - name: Run Discord Bot
         env:
