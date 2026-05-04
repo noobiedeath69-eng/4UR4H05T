@@ -1,4 +1,4 @@
-name: SIGMA-7-FINAL-STAND-V2
+name: SIGMA-7-PRO-SENTINEL
 
 on:
   schedule:
@@ -11,19 +11,36 @@ jobs:
   run-bot:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: 1. Clone Architecture
+        uses: actions/checkout@v4
+
+      - name: 2. Initialize Node
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Launch
+      - name: 3. Execute Jailbreak Launch
         env:
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           npm install
-          echo "🛡️ Sentinel Online. No more aliases. Direct paths only."
-          until npx tsx server/index.ts; do
-            echo "Crashed. Respawning..." >&2
+          
+          echo "🧠 PRO PROTOCOL: Initiating Monorepo Jailbreak..."
+          
+          # We locate the rogue package.json that is intercepting the module resolution
+          # and rename it. Node will now bypass it and map perfectly to the root.
+          ROGUE_JSON="SIGMA-7-Programzip/Deployment-Sentinel/artifacts/discord-bot/package.json"
+          
+          if [ -f "$ROGUE_JSON" ]; then
+            mv "$ROGUE_JSON" "${ROGUE_JSON}.disabled"
+            echo "💥 Rogue firewall disabled. Root context achieved."
+          fi
+          
+          echo "🛡️ SENTINEL ONLINE. Executing with global paths..."
+          
+          # We force tsx to load the root tsconfig.json so it inherently understands what '@workspace/db' is.
+          until npx tsx --tsconfig ./tsconfig.json server/index.ts; do
+            echo "⚠️ Crashed. Respawning in 5 seconds..." >&2
             sleep 5
           done
