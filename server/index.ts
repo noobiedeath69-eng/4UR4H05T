@@ -8,6 +8,13 @@ import { Client, GatewayIntentBits } from 'discord.js';
 // This wakes up the SIGMA-7 bot logic you found in the src folder
 import "../SIGMA-7-Programzip/Deployment-Sentinel/artifacts/discord-bot/src/bot.js";
 
+// THE MASTER LINK
+// This reaches into the deep artifact folder and pulls the trigger on the bot
+import "../SIGMA-7-Programzip/Deployment-Sentinel/artifacts/discord-bot/src/index.js";
+
+console.log("🤖 SIGMA-7 Bot Logic Injected into Server.");
+
+
 const client = new Client({ 
     intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages] 
 });
