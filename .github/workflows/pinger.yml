@@ -1,17 +1,39 @@
-      - name: Deploy and Host
+name: SIGMA-7-Sentinel
+
+on:
+  schedule:
+    - cron: '0 */4 * * *'
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  launch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install and Run
         env:
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
         run: |
-          # 1. Install everything including workspaces
+          # 1. Install with workspace support
           npm install --include=dev --workspaces --if-present
           npm install --include=dev 
           
+          # 2. Deploy existing logic
           echo "🚀 Deploying Commands..."
-          # We run this from the root so it can see the @workspace links
           npx tsx SIGMA-7-Programzip/Deployment-Sentinel/artifacts/discord-bot/src/commands/deploy.ts
           
-          echo "🛡️ Sentinel Active. Starting Server..."
+          # 3. Start the Immortal Host
+          echo "🛡️ Sentinel Active..."
           until npx tsx server/index.ts; do
-            echo "Crash detected. Respawning..." >&2
+            echo "Bot crashed. Respawning..." >&2
             sleep 5
           done
