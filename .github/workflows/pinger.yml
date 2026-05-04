@@ -31,9 +31,29 @@ jobs:
           echo "🛠️ Entering SIGMA-7 Deep Core..."
           cd SIGMA-7-Programzip/Deployment-Sentinel/artifacts/discord-bot
           
-          # C. THE NUCLEAR FIX: Remove 'workspace:*' and replace with 'latest'
-          # This kills the EUNSUPPORTEDPROTOCOL error instantly.
-          echo "💉 Patching package.json protocol..."
+          # C. THE HYDRA-SLAYER FIX: 
+          # This replaces "workspace:*", "catalog:", or ANY "protocol:" with "latest"
+          echo "💉 Surgical strike on package.json protocols..."
+          sed -i 's/workspace:\*/latest/g' package.json
+          sed -i 's/catalog:/latest/g' package.json
+          
+          # D. Install deep dependencies now that the protocols are dead
+          echo "📦 Installing deep dependencies..."
+          npm install --no-package-lock --if-present
+          
+          # E. Return to the root
+          cd ../../../../../
+          
+          # F. Register the Slash Commands
+          echo "🚀 Registering Slash Commands..."
+          npx tsx SIGMA-7-Programzip/Deployment-Sentinel/artifacts/discord-bot/src/commands/deploy.ts
+          
+          # G. Start the Sentinel Loop
+          echo "🛡️ SENTINEL ACTIVE: Monitoring AssetAurora..."
+          until npx tsx server/index.ts; do
+            echo "⚠️ Bot crashed. Respawning in 5 seconds..." >&2
+            sleep 5
+          done
           sed -i 's/workspace:\*/latest/g' package.json
           
           # D. Install deep dependencies now that the protocol is fixed
