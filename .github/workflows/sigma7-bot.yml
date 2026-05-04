@@ -34,7 +34,14 @@ jobs:
         working-directory: SIGMA-7-Programzip/Deployment-Sentinel
         run: pnpm install --frozen-lockfile
 
-      - name: Run bot with auto-restart
+      - name: Install cloudflared
+        run: |
+          curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 \
+            -o /usr/local/bin/cloudflared
+          chmod +x /usr/local/bin/cloudflared
+          cloudflared --version
+
+      - name: Run bot and expose dashboard
         working-directory: SIGMA-7-Programzip/Deployment-Sentinel
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
@@ -49,20 +56,92 @@ jobs:
           START_TIME=$(date +%s)
           RESTART_COUNT=0
 
+          # ── Launch bot in background ────────────────────────────────────────
+          launch_bot() {
+            pnpm --filter @workspace/discord-bot run dev >> /tmp/sigma7-bot.log 2>&1 &
+            echo $!
+          }
+
+          echo "[SIGMA-7] Starting bot..."
+          BOT_PID=$(launch_bot)
+
+          # ── Wait for Express to be ready (poll /api/status) ─────────────────
+          echo "[SIGMA-7] Waiting for Express server on port 5000..."
+          READY=0
+          for i in $(seq 1 40); do
+            if curl -sf http://localhost:5000/api/status > /dev/null 2>&1; then
+              echo "[SIGMA-7] Express ready after ${i}s."
+              READY=1
+              break
+            fi
+            sleep 2
+          done
+
+          if [ $READY -eq 0 ]; then
+            echo "[SIGMA-7] Express did not start in time. Last bot logs:"
+            tail -30 /tmp/sigma7-bot.log || true
+          fi
+
+          # ── Start cloudflared tunnel ─────────────────────────────────────────
+          echo "[SIGMA-7] Opening Cloudflare tunnel..."
+          cloudflared tunnel --url http://localhost:5000 --no-autoupdate \
+            > /tmp/cf.log 2>&1 &
+          CF_PID=$!
+
+          # Wait for the tunnel URL to appear in the log
+          TUNNEL_URL=""
+          for i in $(seq 1 20); do
+            TUNNEL_URL=$(grep -o 'https://[a-z0-9-]*\.trycloudflare\.com' /tmp/cf.log 2>/dev/null | head -1)
+            if [ -n "$TUNNEL_URL" ]; then
+              break
+            fi
+            sleep 3
+          done
+
+          # ── Post URL to GitHub Step Summary ──────────────────────────────────
+          if [ -n "$TUNNEL_URL" ]; then
+            echo "[SIGMA-7] Dashboard live at: $TUNNEL_URL"
+            {
+              echo "## SIGMA-7 AURORA — Dashboard"
+              echo ""
+              echo "| | |"
+              echo "|---|---|"
+              echo "| **Public URL** | [$TUNNEL_URL]($TUNNEL_URL) |"
+              echo "| **Valid until** | ~5 hours from run start |"
+              echo "| **Commslink auth** | Use your \`SESSION_SECRET\` value |"
+              echo ""
+              echo "> Open the URL above in any browser to reach the dashboard."
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "[SIGMA-7] WARNING: Could not capture tunnel URL."
+            cat /tmp/cf.log || true
+          fi
+
+          # ── Main monitor loop — restart bot if it dies ───────────────────────
           while true; do
             ELAPSED=$(( $(date +%s) - START_TIME ))
 
-            # Exit cleanly at 4h 45min so the next scheduled run can take over
+            # Graceful handoff before the 5h job limit
             if [ $ELAPSED -gt 17100 ]; then
-              echo "[SIGMA-7] Scheduled handoff — exiting for fresh run (uptime: ${ELAPSED}s, restarts: ${RESTART_COUNT})"
+              echo "[SIGMA-7] Scheduled handoff (uptime: ${ELAPSED}s, restarts: ${RESTART_COUNT})"
+              kill "$BOT_PID" "$CF_PID" 2>/dev/null || true
               exit 0
             fi
 
-            echo "[SIGMA-7] Starting bot... (uptime: ${ELAPSED}s, restarts: ${RESTART_COUNT})"
-            pnpm --filter @workspace/discord-bot run dev || true
-            EXIT_CODE=$?
+            # Restart bot if it crashed
+            if ! kill -0 "$BOT_PID" 2>/dev/null; then
+              RESTART_COUNT=$((RESTART_COUNT + 1))
+              echo "[SIGMA-7] Bot died — restarting (restart #${RESTART_COUNT}, uptime: ${ELAPSED}s)"
+              BOT_PID=$(launch_bot)
+            fi
 
-            RESTART_COUNT=$((RESTART_COUNT + 1))
-            echo "[SIGMA-7] Process exited with code ${EXIT_CODE}. Restarting in 5 seconds..."
-            sleep 5
+            # Restart tunnel if it crashed
+            if ! kill -0 "$CF_PID" 2>/dev/null; then
+              echo "[SIGMA-7] Tunnel died — restarting..."
+              cloudflared tunnel --url http://localhost:5000 --no-autoupdate \
+                >> /tmp/cf.log 2>&1 &
+              CF_PID=$!
+            fi
+
+            sleep 10
           done
