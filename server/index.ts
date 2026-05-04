@@ -17,7 +17,6 @@ client.once('ready', () => {
 client.login(process.env.DISCORD_TOKEN);
 
 // Replace './bot' with the actual path to your discord bot file
-import "./bot"; 
 
 const app = express();
 const httpServer = createServer(app);
