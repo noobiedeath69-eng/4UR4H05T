@@ -1,13 +1,14 @@
-name: GitHub Bot Host Final Fix
+name: GitHub Bot Host (AssetAurora Edition)
 
 on:
   schedule:
     - cron: '0 */4 * * *'
   workflow_dispatch:
 
-# 1. This stops the "Node 20" warning from breaking the logic
 env:
+  # May 2026 Compatibility Flags
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+  NODE_ENV: development
 
 jobs:
   run-bot:
@@ -16,24 +17,22 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          python-version: '3.11'
-
-      - name: Debug Environment
-        run: |
-          echo "Current Directory Content:"
-          ls -R
-          echo "Checking Python Version:"
-          python --version
+          node-version: '20' # Matches your @types/node version
 
       - name: Install Dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install discord.py
-          # If you have a requirements.txt, it will use it here:
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          npm install
+          # We manually ensure tsx is available globally just in case
+          npm install -g tsx
+
+      - name: Start AssetAurora Engine
+        env:
+          DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+          # If your code uses a DATABASE_URL or other vars, add them here!
+        run: npx tsx server/index.ts
 
       - name: Run Discord Bot
         env:
