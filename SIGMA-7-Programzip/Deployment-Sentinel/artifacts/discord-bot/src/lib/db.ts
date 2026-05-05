@@ -5,7 +5,8 @@ import {
   whitelistedRolesTable, 
   sentientChannelsTable, 
   registeredPlacesTable, 
-  conversationHistoryTable 
+  conversationHistoryTable,
+  botSettingsTable,
 } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import type { NewDeployment } from "@workspace/db";
@@ -101,6 +102,29 @@ export async function getSentientChannel(guildId: string) {
     .where(eq(sentientChannelsTable.guildId, guildId))
     .limit(1);
   return record ?? null;
+}
+
+/**
+ * BOT SETTINGS (persistent key-value)
+ */
+
+export async function getBotSetting(key: string): Promise<string | null> {
+  const [row] = await db
+    .select()
+    .from(botSettingsTable)
+    .where(eq(botSettingsTable.key, key))
+    .limit(1);
+  return row?.value ?? null;
+}
+
+export async function setBotSetting(key: string, value: string): Promise<void> {
+  await db
+    .insert(botSettingsTable)
+    .values({ key, value })
+    .onConflictDoUpdate({
+      target: botSettingsTable.key,
+      set: { value, updatedAt: new Date() },
+    });
 }
 
 export async function setSentientChannel(guildId: string, channelId: string, channelName: string) {

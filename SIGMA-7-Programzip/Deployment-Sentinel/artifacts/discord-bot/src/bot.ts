@@ -23,7 +23,7 @@ import { handleMemClear } from "./commands/memClear.js";
 import { handleHelp } from "./commands/help.js";
 import { handleSetRecon } from "./commands/setRecon.js";
 import { registerSlashCommands } from "./lib/slashCommands.js";
-import { getSentientChannel, getPlaces } from "./lib/db.js";
+import { getSentientChannel, getPlaces, getBotSetting } from "./lib/db.js";
 import { generateResponse } from "./lib/openai.js";
 import {
   addToConversationHistory,
@@ -58,6 +58,23 @@ export function registerEvents(client: Client): void {
       await registerSlashCommands(c.user.id, token).catch((err) => {
         console.error("[SIGMA-7] Failed to register slash commands:", err);
       });
+    }
+
+    // Restore persisted recon status
+    try {
+      const savedStatus = await getBotSetting("recon_status");
+      const savedActivity = await getBotSetting("recon_activity");
+      if (savedStatus) {
+        c.user.setPresence({
+          status: savedStatus as "online" | "idle" | "dnd" | "invisible",
+          activities: savedActivity
+            ? [{ name: savedActivity, type: 4 }]
+            : [],
+        });
+        console.log(`[SIGMA-7] Recon status restored: ${savedStatus}${savedActivity ? ` (${savedActivity})` : ""}`);
+      }
+    } catch (err) {
+      console.error("[SIGMA-7] Failed to restore recon status:", err);
     }
   });
 

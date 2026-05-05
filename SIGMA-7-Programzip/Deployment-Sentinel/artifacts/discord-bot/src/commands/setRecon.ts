@@ -1,5 +1,6 @@
 import { ChatInputCommandInteraction, ActivityType } from "discord.js";
 import { isOwner, isServerAdmin } from "../lib/permissions.js";
+import { setBotSetting } from "../lib/db.js";
 
 const STATUS_LABELS: Record<string, string> = {
   online: "Online",
@@ -28,22 +29,23 @@ export async function handleSetRecon(interaction: ChatInputCommandInteraction): 
     | "idle"
     | "dnd"
     | "invisible";
-  const activity = interaction.options.getString("activity");
+  const activity = interaction.options.getString("activity") ?? null;
 
-  const client = interaction.client;
-
-  client.user?.setPresence({
+  // Apply the presence immediately
+  interaction.client.user?.setPresence({
     status,
-    activities: activity
-      ? [{ name: activity, type: ActivityType.Custom }]
-      : [],
+    activities: activity ? [{ name: activity, type: ActivityType.Custom }] : [],
   });
 
+  // Persist so it survives restarts
+  await setBotSetting("recon_status", status);
+  await setBotSetting("recon_activity", activity ?? "");
+
   const statusLabel = STATUS_LABELS[status] ?? status;
-  const activityLine = activity ? `\nActivity set to: *${activity}*` : "";
+  const activityLine = activity ? `\nActivity: *${activity}*` : "";
 
   await interaction.reply({
-    content: `**[SIGMA-7 // RECON STATUS UPDATED]**\nStatus: **${statusLabel}**${activityLine}`,
+    content: `**[SIGMA-7 // RECON STATUS UPDATED — PERSISTED]**\nStatus: **${statusLabel}**${activityLine}\n*This status will be restored after every restart.*`,
     ephemeral: true,
   });
 }

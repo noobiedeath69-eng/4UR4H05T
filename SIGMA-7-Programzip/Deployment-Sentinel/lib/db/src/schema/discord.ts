@@ -63,8 +63,16 @@ export const conversationHistoryTable = pgTable("discord_conversation_history", 
   seqNum: integer("seq_num").notNull().default(0),
 });
 
+export const botSettingsTable = pgTable("discord_bot_settings", {
+  id: serial("id").primaryKey(),
+  key: text("key").notNull().unique(),
+  value: text("value").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
 export type Deployment = typeof deploymentsTable.$inferSelect;
 export type NewDeployment = typeof deploymentsTable.$inferInsert;
 export type WhitelistedUser = typeof whitelistedUsersTable.$inferSelect;
 export type SentientChannel = typeof sentientChannelsTable.$inferSelect;
 export type LoreDocument = typeof loreDocumentsTable.$inferSelect;
+export type BotSetting = typeof botSettingsTable.$inferSelect;
