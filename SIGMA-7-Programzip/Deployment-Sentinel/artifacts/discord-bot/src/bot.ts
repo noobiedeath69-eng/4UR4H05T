@@ -16,7 +16,7 @@ import { handleDeploymentEnd } from "./commands/deploymentEnd.js";
 import { handleDeploy } from "./commands/deploy.js";
 import { handleUserPermit } from "./commands/userPermit.js";
 import { handleRegisterPlace } from "./commands/registerPlace.js";
-import { handleProjectSet, handleProjectSetSelect } from "./commands/projectSet.js";
+import { handleProjectSet } from "./commands/projectSet.js";
 import { handleLoreUpdate } from "./commands/loreUpdate.js";
 import { handleLoreRemove } from "./commands/loreRemove.js";
 import { handleMemClear } from "./commands/memClear.js";
@@ -174,10 +174,8 @@ async function handleSlashCommand(interaction: ChatInputCommandInteraction, clie
   }
 }
 
-async function handleSelectMenuInteraction(interaction: StringSelectMenuInteraction): Promise<void> {
-  if (interaction.customId === "projectset_channel_select") {
-    await handleProjectSetSelect(interaction);
-  }
+async function handleSelectMenuInteraction(_interaction: StringSelectMenuInteraction): Promise<void> {
+  // No select menu commands currently active
 }
 
 async function handleAutocomplete(interaction: AutocompleteInteraction): Promise<void> {

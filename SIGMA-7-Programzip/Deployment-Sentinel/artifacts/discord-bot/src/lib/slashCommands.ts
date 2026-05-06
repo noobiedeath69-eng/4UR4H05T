@@ -1,4 +1,4 @@
-import { REST, Routes, ApplicationCommandOptionType } from "discord.js";
+import { REST, Routes, ApplicationCommandOptionType, ChannelType } from "discord.js";
 
 export const commandDefinitions = [
   {
@@ -49,6 +49,15 @@ export const commandDefinitions = [
   {
     name: "projectset",
     description: "Assign SIGMA-7 to a channel or forum (owner only)",
+    options: [
+      {
+        name: "channel",
+        description: "The text or forum channel to station SIGMA-7 in",
+        type: ApplicationCommandOptionType.Channel,
+        channelTypes: [ChannelType.GuildText, ChannelType.GuildForum],
+        required: true,
+      },
+    ],
   },
   {
     name: "loreupdate",
