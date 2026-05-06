@@ -7,18 +7,22 @@ import {
   ChannelType,
   TextChannel,
   ForumChannel,
+  GuildChannel,
 } from "discord.js";
 import { isOwner } from "../lib/permissions.js";
 import { setSentientChannel } from "../lib/db.js";
 
-// Pending project set selections keyed by userId → { guildId, timer }
-const pending = new Map<string, { guildId: string; timer: ReturnType<typeof setTimeout>; interaction: ChatInputCommandInteraction }>();
+// Pending project-set selections keyed by userId
+const pending = new Map<string, {
+  guildId: string;
+  timer: ReturnType<typeof setTimeout>;
+  interaction: ChatInputCommandInteraction;
+}>();
 
 export async function handleProjectSet(interaction: ChatInputCommandInteraction): Promise<void> {
   if (!interaction.guild) return;
 
   const callerId = interaction.user.id;
-  console.log(`[SIGMA-7] /projectset called by ${callerId}`);
 
   if (!isOwner(callerId)) {
     await interaction.reply({
@@ -28,17 +32,17 @@ export async function handleProjectSet(interaction: ChatInputCommandInteraction)
     return;
   }
 
+  // Fetch all channels into cache so .cache.get() works later
   const channelCache = await interaction.guild.channels.fetch().catch(() => interaction.guild!.channels.cache);
 
   const eligible = [...channelCache.values()]
-    .filter(
-      (ch) =>
-        ch !== null &&
-        (ch.type === ChannelType.GuildText || ch.type === ChannelType.GuildForum) &&
-        ch.viewable
+    .filter((ch): ch is TextChannel | ForumChannel =>
+      ch !== null &&
+      (ch.type === ChannelType.GuildText || ch.type === ChannelType.GuildForum) &&
+      (ch as GuildChannel).viewable === true
     )
-    .sort((a, b) => (a!.position ?? 0) - (b!.position ?? 0))
-    .slice(0, 25) as (TextChannel | ForumChannel)[];
+    .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+    .slice(0, 25);
 
   if (eligible.length === 0) {
     await interaction.reply({
@@ -59,12 +63,12 @@ export async function handleProjectSet(interaction: ChatInputCommandInteraction)
       )
   );
 
-  const selectMenu = new StringSelectMenuBuilder()
-    .setCustomId("projectset_channel_select")
-    .setPlaceholder("Select a channel to station SIGMA-7...")
-    .addOptions(options);
-
-  const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(selectMenu);
+  const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
+    new StringSelectMenuBuilder()
+      .setCustomId("projectset_channel_select")
+      .setPlaceholder("Select a channel to station SIGMA-7...")
+      .addOptions(options)
+  );
 
   await interaction.reply({
     content: "**📡 SIGMA-7 Channel Assignment**\nSelect the channel where SIGMA-7 will be stationed:",
@@ -72,11 +76,11 @@ export async function handleProjectSet(interaction: ChatInputCommandInteraction)
     ephemeral: true,
   });
 
-  // Clear any previous pending entry for this user
+  // Clear any stale pending entry for this user
   const existing = pending.get(callerId);
   if (existing) clearTimeout(existing.timer);
 
-  // Store state; auto-expire after 60s
+  // Auto-expire after 60 s
   const timer = setTimeout(() => {
     if (pending.has(callerId)) {
       pending.delete(callerId);
@@ -88,9 +92,12 @@ export async function handleProjectSet(interaction: ChatInputCommandInteraction)
 }
 
 export async function handleProjectSetSelect(interaction: StringSelectMenuInteraction): Promise<void> {
+  // Acknowledge immediately to prevent the 3-second Discord timeout
+  await interaction.deferUpdate();
+
   const entry = pending.get(interaction.user.id);
   if (!entry) {
-    await interaction.reply({ content: "⚠️ Session expired. Run /projectset again.", ephemeral: true });
+    await interaction.editReply({ content: "⚠️ Session expired. Run **/projectset** again.", components: [] });
     return;
   }
 
@@ -99,35 +106,54 @@ export async function handleProjectSetSelect(interaction: StringSelectMenuIntera
 
   const channelId = interaction.values[0];
   if (!channelId || !interaction.guild) {
-    await interaction.update({ content: "⚠️ Invalid selection.", components: [] });
+    await interaction.editReply({ content: "⚠️ Invalid selection.", components: [] });
     return;
   }
 
-  const selected = interaction.guild.channels.cache.get(channelId) as TextChannel | ForumChannel | undefined;
+  // Try cache first, then fetch to be safe
+  let selected: TextChannel | ForumChannel | null =
+    (interaction.guild.channels.cache.get(channelId) as TextChannel | ForumChannel | undefined) ?? null;
+
   if (!selected) {
-    await interaction.update({ content: "⚠️ Channel not found.", components: [] });
+    const fetched = await interaction.guild.channels.fetch(channelId).catch(() => null);
+    if (fetched && (fetched.type === ChannelType.GuildText || fetched.type === ChannelType.GuildForum)) {
+      selected = fetched as TextChannel | ForumChannel;
+    }
+  }
+
+  if (!selected) {
+    await interaction.editReply({ content: "⚠️ Channel not found or inaccessible.", components: [] });
     return;
   }
 
-  await setSentientChannel(interaction.guild.id, channelId, selected.name);
+  try {
+    await setSentientChannel(interaction.guild.id, channelId, selected.name);
+  } catch (err) {
+    console.error("[SIGMA-7] setSentientChannel failed:", err);
+    await interaction.editReply({
+      content: "⚠️ Database error while saving channel. Please try again.",
+      components: [],
+    });
+    return;
+  }
 
-  await interaction.update({
+  await interaction.editReply({
     content: [
       `✅ **SIGMA-7 stationed in <#${channelId}>.**`,
       ``,
-      `SIGMA-7 will now monitor and respond to all messages in that channel. Reconnaissance protocols are active.`,
+      `SIGMA-7 will now monitor and respond to all messages in that channel.`,
     ].join("\n"),
     components: [],
   });
 
   if (selected.type === ChannelType.GuildText) {
-    await selected.send(
+    await (selected as TextChannel).send(
       [
         `**[SIGMA-7 ONLINE]**`,
         ``,
         `Designation: SIGMA-7 | MTF Lambda-13 "The Onlookers" — Intelligence & Analysis Unit`,
         ``,
-        `All communications within this channel are now monitored. I am operational and standing by for Foundation-related queries, operational support, or general inquiries. Proceed at your discretion.`,
+        `All communications within this channel are now monitored. I am operational and standing by.`,
       ].join("\n")
     ).catch(() => {});
   }

@@ -128,22 +128,7 @@ export async function setBotSetting(key: string, value: string): Promise<void> {
 }
 
 export async function setSentientChannel(guildId: string, channelId: string, channelName: string) {
-  await db
-    .insert(sentientChannelsTable)
-    .values({ guildId, channelId, channelName })
-    .onConflictDoUpdate({
-      target: sentientChannelsTable.channelId,
-      set: { channelId, channelName, guildId },
-    });
-
-  const existing = await db
-    .select()
-    .from(sentientChannelsTable)
-    .where(and(eq(sentientChannelsTable.guildId, guildId)));
-
-  for (const row of existing) {
-    if (row.channelId !== channelId) {
-      await db.delete(sentientChannelsTable).where(eq(sentientChannelsTable.id, row.id));
-    }
-  }
+  // Remove any existing channel assignment for this guild, then insert fresh
+  await db.delete(sentientChannelsTable).where(eq(sentientChannelsTable.guildId, guildId));
+  await db.insert(sentientChannelsTable).values({ guildId, channelId, channelName });
 }
